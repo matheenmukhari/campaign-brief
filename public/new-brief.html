@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New brief · SelectProperty</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="shell">
+    <div id="sidebar"></div>
+    <div id="workspace">
+      <div id="topbar">
+        <div class="tb-trail" id="tb-trail"></div>
+        <div class="tb-right" id="tb-actions"></div>
+      </div>
+      <div id="body">
+
+        <div style="margin-bottom: 24px;">
+          <h1 class="section-title">New brief</h1>
+          <p class="section-sub">Pick the brief type that fits your campaign.</p>
+          <div class="mode-grid">
+            <div class="mode-card selected" data-mode="quick">
+              <div class="mode-name">Quick brief</div>
+              <div class="mode-desc">Day-to-day tasks. Only the essentials required.</div>
+              <div class="mode-tags"><span class="mode-tag">Social ad</span><span class="mode-tag">Email</span><span class="mode-tag">CRM send</span></div>
+            </div>
+            <div class="mode-card" data-mode="full">
+              <div class="mode-name">Full brief</div>
+              <div class="mode-desc">Complex campaigns. All sections, full approval chain.</div>
+              <div class="mode-tags"><span class="mode-tag">Brand campaign</span><span class="mode-tag">Launch</span></div>
+            </div>
+            <div class="mode-card" data-mode="custom">
+              <div class="mode-name">Custom brief</div>
+              <div class="mode-desc">Mid-complexity. Choose exactly which sections you need.</div>
+              <div class="mode-tags"><span class="mode-tag">GCC push</span><span class="mode-tag">Multi-region</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom section picker -->
+        <div id="custom-picker" style="display:none;" class="card" style="margin-bottom:12px;">
+          <div class="card-head" style="cursor:default"><div class="card-title">Choose sections to include</div></div>
+          <div class="card-body open">
+            <div class="pill-group" id="custom-pills">
+              <label class="pill" data-section="objectives"><input type="checkbox">Objectives &amp; targets</label>
+              <label class="pill on" data-section="audience"><input type="checkbox" checked>Audience</label>
+              <label class="pill on" data-section="localisation"><input type="checkbox" checked>Regional localisation</label>
+              <label class="pill" data-section="messaging"><input type="checkbox">Messaging</label>
+              <label class="pill" data-section="channels"><input type="checkbox">Channel &amp; budget</label>
+              <label class="pill" data-section="kpis"><input type="checkbox">KPI framework</label>
+              <label class="pill" data-section="risk"><input type="checkbox">Risk &amp; compliance</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 1 · Essentials ── -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title"><div class="card-num">1</div>Campaign essentials
+              <span style="font-size:11px;color:var(--tint-green-t);margin-left:6px;font-weight:400">Always required</span>
+            </div>
+            <span class="card-chevron open">▼</span>
+          </div>
+          <div class="card-body open">
+            <div class="fg fg-2">
+              <div><label class="lbl">Campaign name <span class="req">*</span></label>
+                <input type="text" id="f-name" placeholder="Dubai Q3 lead gen" required></div>
+              <div><label class="lbl">Priority <span class="req">*</span></label>
+                <select id="f-priority" required>
+                  <option value="">Select…</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select></div>
+            </div>
+            <div class="fg fg-2">
+              <div><label class="lbl">Campaign type <span class="req">*</span></label>
+                <select id="f-type" required>
+                  <option value="">Select…</option>
+                  <option>Social media ad</option><option>Email campaign</option>
+                  <option>Paid ads (internal)</option><option>Paid ads (agency)</option>
+                  <option>Organic social</option><option>CRM / nurture</option>
+                  <option>Brand campaign</option><option>Development launch</option>
+                  <option>Website</option><option>New market entry</option><option>Event</option>
+                </select></div>
+              <div><label class="lbl">Campaign owner</label>
+                <select id="f-owner"><option value="">Owner (defaults to you)</option></select>
+                <div class="field-hint">Requester is set automatically to you</div></div>
+            </div>
+            <div class="fg fg-2">
+              <div><label class="lbl">Development / property name</label>
+                <input type="text" id="f-dev" placeholder="Edition Birmingham, One Port Street"></div>
+              <div><label class="lbl">Key context / notes</label>
+                <input type="text" id="f-notes" placeholder="Anything the team needs before starting"></div>
+            </div>
+            <div class="fl"><label class="lbl">One-line objective <span class="req">*</span></label>
+              <input type="text" id="f-obj1" placeholder="Generate 50 GCC leads before 30 June" required></div>
+            <div class="fl"><label class="lbl">Key message / CTA <span class="req">*</span></label>
+              <input type="text" id="f-msg" placeholder="Register interest in Edition Birmingham · Register now" required></div>
+
+            <div class="fl"><label class="lbl">Regions <span class="req">*</span></label>
+              <div class="pill-group" id="regions-pills">
+                <label class="pill" data-value="UK"><input type="checkbox">UK</label>
+                <label class="pill" data-value="GCC-EN"><input type="checkbox">GCC — English</label>
+                <label class="pill" data-value="GCC-AR"><input type="checkbox">GCC — Arabic</label>
+                <label class="pill" data-value="Asia"><input type="checkbox">Asia</label>
+                <label class="pill" data-value="Global"><input type="checkbox">Global</label>
+              </div></div>
+            <div class="fl"><label class="lbl">Channels in scope <span class="req">*</span></label>
+              <div class="pill-group" id="channels-pills">
+                <label class="pill" data-value="creative"><input type="checkbox">Creative</label>
+                <label class="pill" data-value="email"><input type="checkbox">Email / CRM</label>
+                <label class="pill" data-value="paid-internal"><input type="checkbox">Paid (internal)</label>
+                <label class="pill" data-value="paid-agency"><input type="checkbox">Paid (agency)</label>
+                <label class="pill" data-value="social"><input type="checkbox">Organic social</label>
+                <label class="pill" data-value="website"><input type="checkbox">Website</label>
+                <label class="pill" data-value="landing"><input type="checkbox">Landing page</label>
+              </div></div>
+            <div class="fg fg-2">
+              <div><label class="lbl">Asset type / deliverable <span class="req">*</span></label>
+                <input type="text" id="f-asset" placeholder="3x emails · 6 static ads · 1 landing page" required></div>
+              <div></div>
+            </div>
+            <div class="fg fg-3">
+              <div><label class="lbl">Go-live date <span class="req">*</span></label><input type="date" id="f-launch" required></div>
+              <div><label class="lbl">Asset deadline <span class="req">*</span></label><input type="date" id="f-deadline" required></div>
+              <div><label class="lbl">Campaign end date</label><input type="date" id="f-end"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 2 · Objectives (full/custom) ── -->
+        <div class="card section-objectives" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title"><div class="card-num">2</div>Objectives &amp; commercial targets</div>
+            <span class="card-chevron">▼</span>
+          </div>
+          <div class="card-body">
+            <div class="fl"><label class="lbl">Primary objective</label><textarea id="d-obj-primary" placeholder="Detailed primary objective with measurable outcomes…"></textarea></div>
+            <div class="fl"><label class="lbl">Secondary objectives</label><textarea id="d-obj-secondary" placeholder="Supporting objectives…"></textarea></div>
+            <div class="fg fg-2">
+              <div><label class="lbl">Target revenue / pipeline</label><input type="text" id="d-revenue" placeholder="£2M pipeline"></div>
+              <div><label class="lbl">Total budget</label><input type="text" id="d-budget" placeholder="£50,000"></div>
+            </div>
+            <div class="fl"><label class="lbl">Expected ROI / ROAS target</label><input type="text" id="d-roi" placeholder="4:1 ROAS, CPL under £30"></div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 3 · Audience ── -->
+        <div class="card section-audience" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title"><div class="card-num">3</div>Audience definition</div>
+            <span class="card-chevron">▼</span>
+          </div>
+          <div class="card-body">
+            <div class="fl"><label class="lbl">Primary audience segment</label><textarea id="d-aud-primary" placeholder="Demographics, investor profile, geography, buying stage…"></textarea></div>
+            <div class="fl"><label class="lbl">Secondary audience segment</label><textarea id="d-aud-secondary"></textarea></div>
+            <div class="fl"><label class="lbl">Investor persona(s)</label><input type="text" id="d-persona" placeholder="HNW buy-to-let, 35–55, GCC-based"></div>
+            <div class="fl"><label class="lbl">Exclusions / suppressions</label><input type="text" id="d-exclusions"></div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 4 · Regional Localisation ── -->
+        <div class="card section-localisation" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title"><div class="card-num">4</div>Regional &amp; language localisation</div>
+            <span class="card-chevron">▼</span>
+          </div>
+          <div class="card-body">
+            <div class="rtabs" id="loc-tabs">
+              <div class="rtab on" data-loc="uk">UK</div>
+              <div class="rtab" data-loc="gcc-en">GCC — EN</div>
+              <div class="rtab ar-tab" data-loc="gcc-ar">GCC — عربي</div>
+              <div class="rtab" data-loc="asia">Asia</div>
+              <div class="rtab" data-loc="global">Global</div>
+            </div>
+            <div class="rpanel on" data-panel="uk">
+              <div class="fl"><label class="lbl">UK market nuance</label><textarea id="d-uk-nuance"></textarea></div>
+              <div class="fl"><label class="lbl">UK CTA / offer adjustment</label><input type="text" id="d-uk-cta"></div>
+            </div>
+            <div class="rpanel" data-panel="gcc-en">
+              <div class="fl"><label class="lbl">GCC (English) nuance</label><textarea id="d-gccen-nuance"></textarea></div>
+              <div class="fl"><label class="lbl">GCC CTA</label><input type="text" id="d-gccen-cta"></div>
+            </div>
+            <div class="rpanel" data-panel="gcc-ar">
+              <div class="rtl-note"><strong>Arabic version required.</strong> Fields must be completed in Arabic and QA'd by Mohammed.</div>
+              <div class="fl rtl-input"><label class="lbl">Key message — Arabic <span class="ar-badge">RTL</span></label><textarea id="d-ar-msg" dir="rtl" placeholder="الرسالة الرئيسية…"></textarea></div>
+              <div class="fl rtl-input"><label class="lbl">CTA — Arabic <span class="ar-badge">RTL</span></label><input type="text" id="d-ar-cta" dir="rtl"></div>
+              <div class="fl"><label class="lbl">Cultural notes</label><input type="text" id="d-ar-cultural"></div>
+            </div>
+            <div class="rpanel" data-panel="asia">
+              <div class="fl"><label class="lbl">Asia sub-market notes</label><textarea id="d-asia-nuance"></textarea></div>
+            </div>
+            <div class="rpanel" data-panel="global">
+              <div class="fl"><label class="lbl">Global brand guardrails</label><textarea id="d-global-guardrails"></textarea></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 5 · Messaging ── -->
+        <div class="card section-messaging" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title"><div class="card-num">5</div>Value proposition &amp; messaging</div>
+            <span class="card-chevron">▼</span>
+          </div>
+          <div class="card-body">
+            <div class="fl"><label class="lbl">Core value proposition</label><textarea id="d-vp"></textarea></div>
+            <div class="fl"><label class="lbl">Supporting messages</label><textarea id="d-support-msg" placeholder="1. …&#10;2. …&#10;3. …"></textarea></div>
+            <div class="fl"><label class="lbl">Proof points</label><textarea id="d-proof"></textarea></div>
+            <div class="fg fg-2">
+              <div><label class="lbl">Primary CTA</label><input type="text" id="d-cta-primary"></div>
+              <div><label class="lbl">Secondary CTA</label><input type="text" id="d-cta-secondary"></div>
+            </div>
+            <div class="fl"><label class="lbl">Mandatory disclaimers</label><textarea id="d-disclaimers"></textarea></div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 6 · Channel Strategy ── -->
+        <div class="card section-channels" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title"><div class="card-num">6</div>Channel strategy &amp; budget</div>
+            <span class="card-chevron">▼</span>
+          </div>
+          <div class="card-body">
+            <div class="fl"><label class="lbl">Budget split by channel</label><textarea id="d-budget-split" placeholder="Paid 60%, Creative 20%, Email 10%, Social 10%"></textarea></div>
+            <div class="fl"><label class="lbl">Flighting / phasing plan</label><textarea id="d-phasing" placeholder="Phase 1: Awareness (wks 1–2), Phase 2: Conversion (wks 3–6)"></textarea></div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 7 · KPIs ── -->
+        <div class="card section-kpis" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title"><div class="card-num">7</div>KPI framework</div>
+            <span class="card-chevron">▼</span>
+          </div>
+          <div class="card-body">
+            <div class="fl"><label class="lbl">KPIs and targets</label><textarea id="d-kpis" placeholder="Qualified leads: 150/month · CPL under £25 · ROAS 4:1"></textarea></div>
+            <div class="fg fg-2">
+              <div><label class="lbl">Dashboard owner</label><select id="d-dash-owner"><option value="">Select…</option></select></div>
+              <div><label class="lbl">Attribution model</label>
+                <select id="d-attribution">
+                  <option value="">Select…</option>
+                  <option>Last click</option><option>First click</option>
+                  <option>Linear</option><option>Data-driven</option>
+                </select></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SECTION 8 · Risk ── -->
+        <div class="card section-risk" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title"><div class="card-num">8</div>Risk, compliance &amp; dependencies</div>
+            <span class="card-chevron">▼</span>
+          </div>
+          <div class="card-body">
+            <div class="fg fg-2">
+              <div><label class="lbl">Legal review required</label>
+                <select id="d-legal"><option value="no">No</option><option value="yes">Yes</option></select></div>
+              <div><label class="lbl">Compliance owner</label><select id="d-compliance"><option value="">Select…</option></select></div>
+            </div>
+            <div class="fl"><label class="lbl">Key risks</label><textarea id="d-risks"></textarea></div>
+            <div class="fl"><label class="lbl">Mitigation plan</label><textarea id="d-mitigation"></textarea></div>
+            <div class="fl"><label class="lbl">Dependencies / blockers</label><textarea id="d-dependencies"></textarea></div>
+          </div>
+        </div>
+
+        <!-- ── Submit bar ── -->
+        <div class="submit-bar">
+          <div>
+            <div class="submit-bar-l">Ready to submit?</div>
+            <div class="submit-bar-s">Brief saves as a draft. Submit to trigger the approval workflow.</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" id="save-btn">Save draft</button>
+            <button class="btn btn-primary" id="submit-btn">Save &amp; submit</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/new-brief.js"></script>
+</body>
+</html>

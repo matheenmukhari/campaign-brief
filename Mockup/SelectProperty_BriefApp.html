@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SelectProperty · Campaign Briefing</title>
+<style>
+/* ══════ DESIGN TOKENS ══════ */
+:root {
+  /* Warm neutrals */
+  --bg: #f8f6f3;
+  --surface: #FFFFFF;
+  --surface-alt: #F0EDE7;
+  --surface-hover: #F3F0EB;
+  --border: #E8E3DA;
+  --border-strong: #CFC7B8;
+  --divider: #EDE8DF;
+
+  /* Text */
+  --text: #171717;
+  --text-2: #5C5C5C;
+  --text-3: #A0A0A0;
+
+  /* Brand & accents (Amie 15-scale, adapted) */
+  --rose: #E24B4A;
+  --orange: #EF9F27;
+  --yellow: #F4AF00;
+  --amber: #EF9F27;
+  --lime: #97C459;
+  --green: #97C459;
+  --teal: #14B8A6;
+  --blue: #378ADD;
+  --indigo: #6366F1;
+  --violet: #7F77DD;
+  --purple: #A050FF;
+  --pink: #D4537E;
+  --red: #E24B4A;
+  --gray: #B4B2A9;
+
+  /* Semantic tints (light bg + dark text) */
+  --tint-amber: #FBEFAF;   --tint-amber-t: #7A5200;
+  --tint-blue: #E6F1FB;    --tint-blue-t: #185FA5;
+  --tint-green: #EAF3DE;   --tint-green-t: #3B6D11;
+  --tint-red: #FAECE7;     --tint-red-t: #993C1D;
+  --tint-purple: #EEEDFE;  --tint-purple-t: #534AB7;
+  --tint-pink: #FBEAF0;    --tint-pink-t: #993556;
+  --tint-gray: #F2F2F2;    --tint-gray-t: #5C5C5C;
+  --tint-teal: #E1F5EE;    --tint-teal-t: #0F6E56;
+
+  /* Radius (5px max across the app) */
+  --r: 5px;
+  --r-sm: 4px;
+  --r-xs: 2px;
+
+  /* Spacing (4px grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ══════ LAYOUT ══════ */
+#shell { display: flex; height: 100vh; overflow: hidden; }
+#sidebar { width: 220px; flex-shrink: 0; background: var(--surface-alt); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+#workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#topbar { height: 56px; background: var(--bg); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; flex-shrink: 0; }
+#body { flex: 1; overflow-y: auto; padding: 28px 40px; }
+
+/* ══════ SIDEBAR ══════ */
+.sb-brand { padding: 20px 14px 8px; }
+.sb-logo { font-size: 15px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; padding: 0 8px; }
+.sb-sub { font-size: 12px; color: var(--text-3); padding: 0 8px; font-weight: 400; margin-top: 2px; }
+.sb-group { font-size: 11px; color: var(--text-3); padding: 14px 8px 6px; font-weight: 400; margin: 0 6px; }
+.sb-link { display: flex; align-items: center; gap: 10px; padding: 7px 10px; margin: 0 6px; border-radius: var(--r); cursor: pointer; color: var(--text-2); font-size: 13.5px; font-weight: 400; transition: background 0.12s, color 0.12s; user-select: none; }
+.sb-link:hover { background: rgba(0,0,0,0.03); color: var(--text); }
+.sb-link.on { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.sb-dot { width: 8px; height: 8px; border-radius: var(--r-xs); flex-shrink: 0; }
+.sb-count { margin-left: auto; font-size: 11px; color: var(--text-3); font-weight: 400; }
+.sb-me { margin-top: auto; padding: 14px 14px 16px; border-top: 0.5px solid var(--border); display: flex; align-items: center; gap: 10px; margin-top: auto; }
+.sb-av { width: 28px; height: 28px; border-radius: var(--r); background: var(--tint-amber); color: var(--tint-amber-t); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+.sb-me-name { font-size: 12.5px; font-weight: 500; color: var(--text); }
+.sb-me-role { font-size: 11px; color: var(--text-3); }
+
+/* ══════ TOPBAR ══════ */
+.tb-trail { font-size: 13px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+.tb-trail strong { color: var(--text); font-weight: 500; }
+.tb-trail .sep { color: var(--border-strong); }
+.tb-right { display: flex; align-items: center; gap: 8px; }
+
+/* ══════ BUTTONS ══════ */
+.btn { padding: 8px 14px; border-radius: var(--r); font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; letter-spacing: -0.005em; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--text); color: var(--surface); }
+.btn-primary:hover:not(:disabled) { background: #2E2E2E; }
+.btn-ghost { background: transparent; color: var(--text-2); border: 0.5px solid var(--border-strong); padding: 7px 13px; font-weight: 400; }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
+.btn-ok { background: var(--tint-green); color: var(--tint-green-t); }
+.btn-ok:hover:not(:disabled) { background: #DDECC5; }
+.btn-danger { background: var(--tint-red); color: var(--tint-red-t); }
+.btn-danger:hover:not(:disabled) { background: #F5D9C9; }
+.btn-sm { padding: 6px 11px; font-size: 12.5px; }
+.btn-xs { padding: 4px 10px; font-size: 12px; }
+
+/* ══════ CARDS ══════ */
+.card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.card-head { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.12s; }
+.card-head:hover { background: var(--surface-hover); }
+.card-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; }
+.card-num { width: 20px; height: 20px; border-radius: var(--r-sm); background: var(--surface-alt); color: var(--text-2); font-size: 10.5px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.card-body { border-top: 0.5px solid var(--divider); padding: 20px; display: none; animation: fadeIn 0.18s ease; }
+.card-body.open { display: block; }
+.card-chevron { font-size: 11px; color: var(--text-3); transition: transform 0.2s; user-select: none; }
+.card-chevron.open { transform: rotate(180deg); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ══════ FORMS ══════ */
+.fg { display: grid; gap: 14px; margin-bottom: 14px; }
+.fg-2 { grid-template-columns: 1fr 1fr; }
+.fg-3 { grid-template-columns: 1fr 1fr 1fr; }
+.fl { margin-bottom: 14px; }
+label.lbl { display: block; font-size: 12px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; letter-spacing: -0.005em; }
+.req { color: var(--rose); }
+input[type=text], input[type=date], input[type=number], input[type=email], select, textarea {
+  width: 100%; padding: 9px 12px; border: 0.5px solid var(--border-strong); border-radius: var(--r);
+  font-size: 13.5px; font-family: inherit; color: var(--text); background: var(--surface); outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s; letter-spacing: -0.005em;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(23,23,23,0.06); }
+input::placeholder, textarea::placeholder { color: #B8B8B8; }
+input[readonly] { background: var(--surface-alt); color: var(--text-3); }
+textarea { resize: vertical; min-height: 72px; line-height: 1.55; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23A0A0A0'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+.field-hint { font-size: 11.5px; color: var(--text-3); margin-top: 5px; }
+.divider { height: 0.5px; background: var(--divider); margin: 16px 0; }
+
+/* ══════ PILLS (checkbox) ══════ */
+.pill-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 0.5px solid var(--border-strong); border-radius: var(--r); cursor: pointer; font-size: 12.5px; font-weight: 400; color: var(--text-2); transition: all 0.12s; user-select: none; background: var(--surface); }
+.pill:hover { border-color: var(--text); color: var(--text); }
+.pill.on { background: var(--text); border-color: var(--text); color: var(--surface); }
+.pill input { display: none; }
+
+/* ══════ TAGS / BADGES ══════ */
+.tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: var(--r-sm); font-size: 11.5px; font-weight: 500; letter-spacing: 0; }
+.tag-dot { width: 6px; height: 6px; border-radius: var(--r-xs); }
+.tag-amber { background: var(--tint-amber); color: var(--tint-amber-t); }
+.tag-blue { background: var(--tint-blue); color: var(--tint-blue-t); }
+.tag-green { background: var(--tint-green); color: var(--tint-green-t); }
+.tag-red { background: var(--tint-red); color: var(--tint-red-t); }
+.tag-purple { background: var(--tint-purple); color: var(--tint-purple-t); }
+.tag-pink { background: var(--tint-pink); color: var(--tint-pink-t); }
+.tag-gray { background: var(--tint-gray); color: var(--tint-gray-t); }
+.tag-teal { background: var(--tint-teal); color: var(--tint-teal-t); }
+.tag-dark { background: var(--text); color: var(--surface); }
+
+/* ══════ MODE SELECTOR ══════ */
+#mode-selector { margin-bottom: 24px; }
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 16px; }
+.mode-card { border: 0.5px solid var(--border-strong); border-radius: var(--r); padding: 16px; cursor: pointer; transition: all 0.15s; background: var(--surface); position: relative; }
+.mode-card:hover { border-color: var(--text); }
+.mode-card.selected { border-color: var(--text); background: var(--surface); box-shadow: 0 0 0 1px var(--text); }
+.mode-card.selected::after { content: ''; position: absolute; top: 12px; right: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--text); }
+.mode-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; letter-spacing: -0.01em; }
+.mode-desc { font-size: 12.5px; color: var(--text-3); line-height: 1.55; }
+.mode-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.mode-tag { font-size: 11px; padding: 2px 8px; border-radius: var(--r-sm); background: var(--surface-alt); color: var(--text-2); font-weight: 400; }
+
+/* ══════ PIPELINE ══════ */
+.pipeline { display: flex; align-items: flex-start; margin-bottom: 24px; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 18px 22px; gap: 0; }
+.pipe-step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+.pipe-step:not(:last-child)::after { content: ''; position: absolute; top: 13px; left: calc(50% + 14px); right: calc(-50% + 14px); height: 1px; background: var(--border-strong); }
+.pipe-step.done::after { background: var(--green); }
+.pipe-step.active::after { background: var(--border-strong); }
+.pipe-dot { width: 26px; height: 26px; border-radius: 50%; border: 0.5px solid var(--border-strong); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--text-3); z-index: 1; transition: all 0.3s; }
+.pipe-step.done .pipe-dot { background: var(--green); border-color: var(--green); color: var(--surface); }
+.pipe-step.active .pipe-dot { background: var(--text); border-color: var(--text); color: var(--surface); box-shadow: 0 0 0 3px rgba(23,23,23,0.08); }
+.pipe-label { font-size: 11px; color: var(--text-3); margin-top: 8px; text-align: center; line-height: 1.35; font-weight: 400; }
+.pipe-step.active .pipe-label { color: var(--text); font-weight: 500; }
+.pipe-step.done .pipe-label { color: var(--tint-green-t); }
+
+/* ══════ REGION TABS ══════ */
+.rtabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+.rtab { padding: 6px 12px; border-radius: var(--r); font-size: 12.5px; font-weight: 400; cursor: pointer; border: 0.5px solid var(--border-strong); color: var(--text-2); background: var(--surface); transition: all 0.12s; }
+.rtab:hover { border-color: var(--text); color: var(--text); }
+.rtab.on { background: var(--text); border-color: var(--text); color: var(--surface); font-weight: 500; }
+.rtab.ar-tab.on { background: var(--tint-amber-t); border-color: var(--tint-amber-t); color: var(--surface); }
+.rpanel { display: none; }
+.rpanel.on { display: block; animation: fadeIn 0.18s ease; }
+.rtl-note { background: var(--tint-amber); border: 0.5px solid #E6C97B; border-radius: var(--r); padding: 10px 14px; margin-bottom: 14px; font-size: 12.5px; color: var(--tint-amber-t); }
+.rtl-input input, .rtl-input textarea { direction: rtl; text-align: right; }
+.ar-badge { font-size: 10px; font-weight: 500; padding: 1.5px 6px; background: var(--tint-amber); color: var(--tint-amber-t); border-radius: var(--r-sm); margin-left: 6px; vertical-align: middle; }
+
+/* ══════ APPROVAL ══════ */
+.appr-chain { display: flex; flex-direction: column; gap: 8px; }
+.appr-card { border: 0.5px solid var(--border); border-radius: var(--r); overflow: hidden; background: var(--surface); transition: box-shadow 0.15s; }
+.appr-card:hover { box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+.appr-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+.appr-info { display: flex; align-items: center; gap: 12px; }
+.appr-av { width: 32px; height: 32px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+.appr-name { font-size: 13.5px; font-weight: 500; color: var(--text); letter-spacing: -0.005em; }
+.appr-role { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+.appr-acts { display: flex; align-items: center; gap: 6px; }
+.appr-body { padding: 12px 16px; border-top: 0.5px solid var(--divider); display: none; }
+.appr-body.open { display: block; }
+.appr-comment { background: var(--tint-red); border-left: 2px solid var(--rose); padding: 8px 12px; border-radius: 0 var(--r) var(--r) 0; font-size: 12.5px; color: var(--tint-red-t); margin-top: 8px; line-height: 1.55; }
+.appr-ok { background: var(--tint-green); border-left: 2px solid var(--green); padding: 8px 12px; border-radius: 0 var(--r) var(--r) 0; font-size: 12.5px; color: var(--tint-green-t); margin-top: 8px; }
+.stage-label { font-size: 11px; font-weight: 500; color: var(--text-3); margin: 16px 0 8px; display: flex; align-items: center; gap: 8px; }
+.stage-label::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+.optional-stage { opacity: 0.6; background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.015) 5px, rgba(0,0,0,0.015) 10px); }
+
+/* ══════ CONFIRMATION CARD ══════ */
+.confirm-card { background: var(--tint-blue); border: 0.5px solid #B8CBE8; border-radius: var(--r); padding: 18px 20px; margin-bottom: 20px; }
+.confirm-title { font-size: 14px; font-weight: 500; color: var(--tint-blue-t); margin-bottom: 6px; letter-spacing: -0.01em; }
+.confirm-fields { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 14px; margin: 12px 0; }
+.confirm-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 0.5px solid var(--divider); font-size: 13px; }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-key { font-weight: 500; color: var(--text); min-width: 140px; flex-shrink: 0; }
+.confirm-val { color: var(--text-2); }
+
+/* ══════ CONTENT REVIEW ══════ */
+.review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.reviewer-card { border: 0.5px solid var(--border); border-radius: var(--r); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+.rev-info { display: flex; align-items: center; gap: 10px; }
+.rev-av { width: 28px; height: 28px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 500; flex-shrink: 0; }
+.rev-rnd { display: flex; align-items: center; gap: 6px; }
+.rnd-box { width: 26px; height: 26px; border: 0.5px solid var(--border-strong); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; font-weight: 500; transition: all 0.12s; color: var(--text-3); background: var(--surface); }
+.rnd-box:hover { border-color: var(--text); }
+.rnd-box.r1-done { background: var(--green); border-color: var(--green); color: var(--surface); }
+.rnd-box.r2-done { background: var(--text); border-color: var(--text); color: var(--surface); }
+.rnd-label { font-size: 10px; color: var(--text-3); text-align: center; margin-top: 3px; }
+
+/* ══════ TODOIST ══════ */
+.todoist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.todoist-logo-wrap { display: flex; align-items: center; gap: 10px; }
+.t-logo { width: 26px; height: 26px; background: #E24B4A; border-radius: var(--r); color: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; }
+.proj-map { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; background: var(--surface-alt); border-radius: var(--r); padding: 14px; border: 0.5px solid var(--border); }
+.proj-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.proj-row select { font-size: 12.5px; padding: 5px 30px 5px 8px; }
+.task-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border: 0.5px solid var(--border); border-radius: var(--r); background: var(--surface); margin-bottom: 6px; transition: background 0.1s; }
+.task-item:hover { background: var(--surface-hover); }
+.t-chk { width: 16px; height: 16px; border-radius: var(--r-sm); border: 0.5px solid var(--border-strong); background: var(--surface); flex-shrink: 0; margin-top: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 9px; transition: all 0.12s; color: transparent; }
+.t-chk.on { background: var(--green); border-color: var(--green); color: var(--surface); }
+.t-info { flex: 1; }
+.t-title { font-size: 13.5px; font-weight: 400; color: var(--text); }
+.t-meta { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+.t-proj { margin-left: auto; font-size: 10.5px; font-weight: 500; padding: 3px 8px; border-radius: var(--r-sm); background: var(--surface-alt); color: var(--text-2); white-space: nowrap; flex-shrink: 0; align-self: center; }
+
+/* ══════ SECTION HEADERS ══════ */
+.section-title { font-size: 24px; font-weight: 500; color: var(--text); margin-bottom: 4px; letter-spacing: -0.02em; }
+.section-sub { font-size: 13.5px; color: var(--text-2); margin-bottom: 22px; font-weight: 400; }
+
+/* ══════ STATS ROW ══════ */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+.stat { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 14px 16px; }
+.stat-lbl { font-size: 12px; color: var(--text-3); margin-bottom: 5px; font-weight: 400; }
+.stat-val { font-size: 22px; font-weight: 500; color: var(--text); letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 8px; }
+.stat-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+.stat-dot { width: 8px; height: 8px; border-radius: var(--r-xs); display: inline-block; }
+
+/* ══════ QA ══════ */
+.qa-group-h { font-size: 11px; font-weight: 500; color: var(--text-3); margin: 14px 0 8px; display: flex; align-items: center; gap: 8px; }
+.qa-group-h::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+.qa-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 0.5px solid var(--border); border-radius: var(--r); cursor: pointer; font-size: 13px; user-select: none; transition: all 0.12s; margin-bottom: 5px; background: var(--surface); }
+.qa-item:hover { background: var(--surface-hover); }
+.qa-item.checked { background: var(--tint-green); border-color: #C5DDA3; }
+.qa-box { width: 16px; height: 16px; border-radius: var(--r-sm); border: 0.5px solid var(--border-strong); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; transition: all 0.12s; color: transparent; }
+.qa-item.checked .qa-box { background: var(--green); border-color: var(--green); color: var(--surface); }
+
+/* ══════ TABLE ══════ */
+.sp-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); }
+.sp-table th { background: var(--surface-alt); color: var(--text-2); padding: 9px 12px; text-align: left; font-size: 11.5px; font-weight: 500; letter-spacing: 0; border-bottom: 0.5px solid var(--border); }
+.sp-table td { padding: 10px 12px; border-bottom: 0.5px solid var(--divider); }
+.sp-table tr:last-child td { border-bottom: none; }
+.sp-table tr:hover td { background: var(--surface-hover); }
+.sp-table input { border: none; background: transparent; width: 100%; font-size: 13px; font-family: inherit; padding: 2px 0; }
+.sp-table input:focus { outline: none; background: var(--tint-amber); border-radius: var(--r-xs); padding: 2px 6px; }
+
+/* ══════ BRIEF LIST (dashboard) ══════ */
+.brief-list { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.brief-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 0.5px solid var(--divider); cursor: pointer; transition: background 0.1s; }
+.brief-row:last-child { border-bottom: none; }
+.brief-row:hover { background: var(--surface-hover); }
+.brief-color { width: 4px; height: 32px; border-radius: var(--r-xs); flex-shrink: 0; }
+.brief-main { flex: 1; min-width: 0; }
+.brief-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 2px; letter-spacing: -0.005em; }
+.brief-meta { font-size: 12.5px; color: var(--text-3); }
+.brief-owner { font-size: 12.5px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.brief-av { width: 22px; height: 22px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: var(--text); }
+
+/* ══════ BANNER ══════ */
+.banner { border-radius: var(--r); padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: flex-start; gap: 12px; font-size: 13px; line-height: 1.5; }
+.banner b { display: block; font-weight: 500; margin-bottom: 2px; }
+.b-info { background: var(--tint-blue); border: 0.5px solid #B8CBE8; color: var(--tint-blue-t); }
+.b-warn { background: var(--tint-amber); border: 0.5px solid #E6C97B; color: var(--tint-amber-t); }
+.b-ok { background: var(--tint-green); border: 0.5px solid #C5DDA3; color: var(--tint-green-t); }
+.b-dark { background: var(--text); border: 0.5px solid var(--text); color: var(--surface); }
+.banner-dot { width: 8px; height: 8px; border-radius: var(--r-xs); margin-top: 4px; flex-shrink: 0; }
+
+/* ══════ MODAL ══════ */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 500; display: none; align-items: center; justify-content: center; }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--r); width: 500px; max-width: 94vw; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); border: 0.5px solid var(--border); }
+.modal-head { padding: 18px 22px 14px; border-bottom: 0.5px solid var(--divider); display: flex; align-items: center; justify-content: space-between; }
+.modal-ttl { font-size: 15px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; }
+.modal-x { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-3); line-height: 1; padding: 0; }
+.modal-body { padding: 18px 22px; }
+.modal-foot { padding: 12px 22px 18px; border-top: 0.5px solid var(--divider); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ══════ TOAST ══════ */
+.toast { position: fixed; bottom: 22px; right: 22px; background: var(--text); color: var(--surface); padding: 11px 18px; border-radius: var(--r); font-size: 13px; font-weight: 400; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 900; transform: translateY(80px); opacity: 0; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: 340px; }
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ══════ REVISION LOG ══════ */
+.rev-entry { display: flex; gap: 12px; margin-bottom: 12px; }
+.rev-spine { display: flex; flex-direction: column; align-items: center; }
+.rev-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text); flex-shrink: 0; margin-top: 4px; }
+.rev-line { width: 1px; flex: 1; background: var(--border-strong); margin-top: 3px; min-height: 20px; }
+.rev-body { flex: 1; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 10px 14px; font-size: 12.5px; }
+.rev-body strong { font-weight: 500; color: var(--text); }
+.rev-who { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+/* ══════ SCROLLBAR ══════ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--r-xs); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ══════ TEAM PAGE ══════ */
+.team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.team-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 16px; display: flex; align-items: flex-start; gap: 12px; transition: box-shadow 0.15s; }
+.team-card:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+.t-av-lg { width: 40px; height: 40px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+.t-name { font-size: 14px; font-weight: 500; color: var(--text); letter-spacing: -0.005em; }
+.t-role { font-size: 12px; color: var(--text-2); margin-top: 1px; }
+.t-region { font-size: 10.5px; font-weight: 500; padding: 2px 8px; border-radius: var(--r-sm); background: var(--surface-alt); color: var(--text-2); margin-top: 7px; display: inline-block; }
+.t-resp { font-size: 12px; color: var(--text-3); margin-top: 7px; line-height: 1.55; }
+
+/* ══════ SUBMIT BAR ══════ */
+.submit-bar { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.submit-bar-l { font-size: 13.5px; font-weight: 500; color: var(--text); }
+.submit-bar-s { font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+
+/* ══════ GREETING ══════ */
+.greet-h1 { font-size: 26px; font-weight: 500; color: var(--text); margin: 0 0 4px; letter-spacing: -0.02em; }
+.greet-sub { font-size: 14px; color: var(--text-2); margin: 0 0 24px; font-weight: 400; }
+
+/* ══════ FEEDBACK ══════ */
+.fb-item { background: var(--surface-alt); border-radius: var(--r); padding: 10px 14px; margin-bottom: 6px; font-size: 13px; }
+.fb-item strong { font-weight: 500; color: var(--text); }
+.fb-time { font-size: 10.5px; color: var(--text-3); margin-top: 3px; }
+
+/* Responsive */
+@media(max-width: 860px) {
+  #sidebar { display: none; }
+  .fg-2, .fg-3 { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .mode-grid { grid-template-columns: 1fr; }
+  .team-grid { grid-template-columns: 1fr 1fr; }
+  .review-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div id="shell">
+
+<!-- ══ SIDEBAR ══ -->
+<div id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">SelectProperty</div>
+    <div class="sb-sub">Campaign briefing</div>
+  </div>
+  <div class="sb-group">Workspace</div>
+  <div class="sb-link on" data-page="dashboard" onclick="nav(this)"><span class="sb-dot" style="background: var(--text)"></span>Dashboard</div>
+  <div class="sb-link" data-page="new-brief" onclick="nav(this)"><span class="sb-dot" style="background: var(--rose)"></span>New brief</div>
+  <div class="sb-group">Active</div>
+  <div class="sb-link" data-page="approval" onclick="nav(this)"><span class="sb-dot" style="background: var(--amber)"></span>Approvals<span class="sb-count">2</span></div>
+  <div class="sb-link" data-page="review" onclick="nav(this)"><span class="sb-dot" style="background: var(--blue)"></span>Content review<span class="sb-count">1</span></div>
+  <div class="sb-link" data-page="todoist" onclick="nav(this)"><span class="sb-dot" style="background: var(--green)"></span>Todoist push</div>
+  <div class="sb-group">Reference</div>
+  <div class="sb-link" data-page="team" onclick="nav(this)"><span class="sb-dot" style="background: var(--pink)"></span>Team</div>
+  <div class="sb-link" data-page="qa" onclick="nav(this)"><span class="sb-dot" style="background: var(--violet)"></span>QA checklist</div>
+  <div class="sb-link" data-page="log" onclick="nav(this)"><span class="sb-dot" style="background: var(--gray)"></span>Revision log</div>
+  <div class="sb-me">
+    <div class="sb-av">JO</div>
+    <div><div class="sb-me-name">Joey</div><div class="sb-me-role">GCC · Content exec</div></div>
+  </div>
+</div>
+
+<!-- ══ WORKSPACE ══ -->
+<div id="workspace">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div class="tb-trail">
+      <span id="tb-section">Dashboard</span>
+      <span id="tb-sep" class="sep" style="display:none">›</span>
+      <strong id="tb-campaign"></strong>
+      <span id="tb-badge-wrap"></span>
+    </div>
+    <div class="tb-right" id="tb-actions"></div>
+  </div>
+
+  <div id="body">
+
+  <!-- ══ PAGE: DASHBOARD ══ -->
+  <div id="page-dashboard">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px;">
+      <div>
+        <h1 class="greet-h1">Good morning, Joey</h1>
+        <p class="greet-sub">Four briefs in play. Two need your eyes today.</p>
+      </div>
+      <button class="btn btn-primary" onclick="nav(document.querySelector('[data-page=new-brief]'))">+ New brief</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-lbl">Active</div>
+        <div class="stat-val">4 <span class="stat-dot" style="background: var(--text)"></span></div>
+        <div class="stat-sub">2 Quick · 2 Full</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Pending approval</div>
+        <div class="stat-val">2 <span class="stat-dot" style="background: var(--amber)"></span></div>
+        <div class="stat-sub">Awaiting sign-off</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">In review</div>
+        <div class="stat-val">1 <span class="stat-dot" style="background: var(--blue)"></span></div>
+        <div class="stat-sub">Feedback round</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Approved this month</div>
+        <div class="stat-val">6 <span class="stat-dot" style="background: var(--green)"></span></div>
+        <div class="stat-sub">Pushed to Todoist</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+      <!-- Recent briefs -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h2 style="font-size: 15px; font-weight: 500; color: var(--text); letter-spacing: -0.01em;">Recent briefs</h2>
+          <button class="btn btn-ghost btn-sm">View all</button>
+        </div>
+        <div class="brief-list">
+          <div class="brief-row" onclick="loadDemoBrief()">
+            <div class="brief-color" style="background: var(--amber)"></div>
+            <div class="brief-main">
+              <div class="brief-title">Dubai Q3 lead gen</div>
+              <div class="brief-meta">GCC · Paid social · Go-live 15 Jun</div>
+            </div>
+            <span class="tag tag-amber">Quick</span>
+            <span class="tag tag-red">Approval</span>
+            <div class="brief-owner"><div class="brief-av" style="background: var(--tint-amber)">JO</div>Joey</div>
+          </div>
+          <div class="brief-row">
+            <div class="brief-color" style="background: var(--blue)"></div>
+            <div class="brief-main">
+              <div class="brief-title">Edition Birmingham launch</div>
+              <div class="brief-meta">UK · Full campaign · Go-live 22 Jun</div>
+            </div>
+            <span class="tag tag-blue">Full</span>
+            <span class="tag tag-blue">Review</span>
+            <div class="brief-owner"><div class="brief-av" style="background: var(--tint-blue)">JO</div>Joey</div>
+          </div>
+          <div class="brief-row">
+            <div class="brief-color" style="background: var(--green)"></div>
+            <div class="brief-main">
+              <div class="brief-title">Affinity Living email</div>
+              <div class="brief-meta">UK · CRM · Sent 5 Jun</div>
+            </div>
+            <span class="tag tag-amber">Quick</span>
+            <span class="tag tag-green">Approved</span>
+            <div class="brief-owner"><div class="brief-av" style="background: var(--tint-green)">RH</div>Rhiannon</div>
+          </div>
+          <div class="brief-row">
+            <div class="brief-color" style="background: var(--gray)"></div>
+            <div class="brief-main">
+              <div class="brief-title">Select Residential brand</div>
+              <div class="brief-meta">Global · Brand campaign · No date set</div>
+            </div>
+            <span class="tag tag-blue">Full</span>
+            <span class="tag tag-gray">Draft</span>
+            <div class="brief-owner"><div class="brief-av" style="background: var(--surface-alt)">JO</div>Joey</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline visual -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h2 style="font-size: 15px; font-weight: 500; color: var(--text); letter-spacing: -0.01em;">How it works</h2>
+        </div>
+        <div class="card">
+          <div class="card-body open">
+            <p style="font-size: 12.5px; color: var(--text-2); margin-bottom: 14px; line-height: 1.6;">Every brief — Quick or Full — moves through a 4-stage gate. Stages unlock in order. Todoist tasks fire only after full approval.</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 0.5px solid var(--border); border-radius: var(--r); font-size: 13px;">
+                <div style="width: 4px; height: 32px; background: var(--gray); border-radius: var(--r-xs); flex-shrink: 0; margin-top: 2px;"></div>
+                <div><strong style="font-weight: 500;">1 · Draft</strong><div style="font-size: 12px; color: var(--text-3); margin-top: 2px;">Brief created by content exec / campaign manager</div></div>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 0.5px solid var(--border); border-radius: var(--r); font-size: 13px;">
+                <div style="width: 4px; height: 32px; background: var(--blue); border-radius: var(--r-xs); flex-shrink: 0; margin-top: 2px;"></div>
+                <div><strong style="font-weight: 500;">2 · Understanding confirmation</strong><div style="font-size: 12px; color: var(--text-3); margin-top: 2px;">Author sends interpretation for requester sign-off</div></div>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 0.5px solid var(--border); border-radius: var(--r); font-size: 13px;">
+                <div style="width: 4px; height: 32px; background: var(--amber); border-radius: var(--r-xs); flex-shrink: 0; margin-top: 2px;"></div>
+                <div><strong style="font-weight: 500;">3 · Content review (2 rounds)</strong><div style="font-size: 12px; color: var(--text-3); margin-top: 2px;">Round 1 feedback. Round 2 sign-off only</div></div>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 0.5px solid var(--border); border-radius: var(--r); font-size: 13px;">
+                <div style="width: 4px; height: 32px; background: var(--green); border-radius: var(--r-xs); flex-shrink: 0; margin-top: 2px;"></div>
+                <div><strong style="font-weight: 500;">4 · Final approval + Todoist</strong><div style="font-size: 12px; color: var(--text-3); margin-top: 2px;">HoM (+ CEO if triggered). Tasks push to Todoist</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: NEW BRIEF ══ -->
+  <div id="page-new-brief" style="display:none">
+
+    <div style="margin-bottom: 24px;">
+      <h1 class="section-title">New brief</h1>
+      <p class="section-sub">Pick the brief type that fits your campaign.</p>
+      <div class="mode-grid">
+        <div class="mode-card selected" id="mode-quick" onclick="selectMode('quick')">
+          <div class="mode-name">Quick brief</div>
+          <div class="mode-desc">Day-to-day tasks. Only the essentials required.</div>
+          <div class="mode-tags">
+            <span class="mode-tag">Social ad</span><span class="mode-tag">Email</span><span class="mode-tag">Paid ad</span><span class="mode-tag">CRM send</span>
+          </div>
+        </div>
+        <div class="mode-card" id="mode-full" onclick="selectMode('full')">
+          <div class="mode-name">Full brief</div>
+          <div class="mode-desc">Complex campaigns. All sections, full approval chain.</div>
+          <div class="mode-tags">
+            <span class="mode-tag">Brand campaign</span><span class="mode-tag">Launch</span><span class="mode-tag">New market</span>
+          </div>
+        </div>
+        <div class="mode-card" id="mode-custom" onclick="selectMode('custom')">
+          <div class="mode-name">Custom brief</div>
+          <div class="mode-desc">Mid-complexity. Choose exactly which sections you need.</div>
+          <div class="mode-tags">
+            <span class="mode-tag">GCC push</span><span class="mode-tag">Multi-region</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom section picker -->
+    <div id="custom-picker" style="display:none;" class="card" style="margin-bottom:12px;">
+      <div class="card-head" style="cursor:default"><div class="card-title">Choose sections to include</div></div>
+      <div class="card-body open">
+        <div class="pill-group" id="custom-pills">
+          <label class="pill on" onclick="togglePill(this)"><input type="checkbox" checked>Audience definition</label>
+          <label class="pill on" onclick="togglePill(this)"><input type="checkbox" checked>Regional localisation</label>
+          <label class="pill" onclick="togglePill(this)"><input type="checkbox">Objectives &amp; targets</label>
+          <label class="pill" onclick="togglePill(this)"><input type="checkbox">Channel strategy</label>
+          <label class="pill" onclick="togglePill(this)"><input type="checkbox">KPI framework</label>
+          <label class="pill" onclick="togglePill(this)"><input type="checkbox">Risk &amp; compliance</label>
+          <label class="pill" onclick="togglePill(this)"><input type="checkbox">Budget allocation</label>
+          <label class="pill" onclick="togglePill(this)"><input type="checkbox">Post-campaign review</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 1: ESSENTIALS ── -->
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-head" onclick="tog(this)">
+        <div class="card-title"><div class="card-num">1</div>Campaign essentials <span style="font-size:11px;color:var(--tint-green-t);margin-left:6px;font-weight:400">Always required</span></div>
+        <span class="card-chevron open">▼</span>
+      </div>
+      <div class="card-body open">
+        <div class="fg fg-2">
+          <div><label class="lbl">Campaign name <span class="req">*</span></label><input type="text" id="f-name" placeholder="Dubai Q3 lead gen" oninput="updateTrail()"></div>
+          <div><label class="lbl">Brief ID</label><input type="text" id="f-id" readonly></div>
+        </div>
+        <div class="fg fg-2">
+          <div><label class="lbl">Campaign type <span class="req">*</span></label>
+            <select id="f-type">
+              <option value="">Select…</option>
+              <option>Social media ad</option><option>Email campaign</option><option>Paid ads (internal)</option>
+              <option>Paid ads (agency)</option><option>Organic social</option><option>CRM / nurture</option>
+              <option>Brand campaign</option><option>Development launch</option><option>Website</option>
+              <option>New market entry</option><option>Event</option>
+            </select>
+          </div>
+          <div><label class="lbl">Priority <span class="req">*</span></label>
+            <select id="f-priority"><option value="">Select…</option><option>High</option><option>Medium</option><option>Low</option></select>
+          </div>
+        </div>
+        <div class="fl">
+          <label class="lbl">Campaign owner <span class="req">*</span></label>
+          <select id="f-owner"><option value="">Select…</option></select>
+          <div class="field-hint">Requester is set automatically to the logged-in user (Joey)</div>
+        </div>
+        <div class="fg fg-2">
+          <div><label class="lbl">Development / property name</label><input type="text" id="f-dev" placeholder="Edition Birmingham, One Port Street"></div>
+          <div><label class="lbl">Request date</label><input type="date" id="f-reqdate"></div>
+        </div>
+        <div class="fl"><label class="lbl">One-line objective <span class="req">*</span></label>
+          <input type="text" id="f-obj1" placeholder="Generate 50 GCC leads before 30 June">
+        </div>
+        <div class="fl"><label class="lbl">Key message / CTA <span class="req">*</span></label>
+          <input type="text" id="f-msg" placeholder="Register interest in Edition Birmingham · Register now">
+        </div>
+        <div class="fl"><label class="lbl">Regions <span class="req">*</span></label>
+          <div class="pill-group">
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">UK</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">GCC — English</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">GCC — Arabic</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Asia</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Global</label>
+          </div>
+        </div>
+        <div class="fl"><label class="lbl">Channels in scope <span class="req">*</span></label>
+          <div class="pill-group">
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Creative</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Email / CRM</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Paid (internal)</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Paid (agency)</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Organic social</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Website</label>
+            <label class="pill" onclick="togglePill(this)"><input type="checkbox">Landing page</label>
+          </div>
+        </div>
+        <div class="fg fg-2">
+          <div><label class="lbl">Asset type / deliverable <span class="req">*</span></label><input type="text" id="f-asset" placeholder="3x emails · 6 static ads · 1 landing page"></div>
+          <div><label class="lbl">Key context / notes</label><input type="text" id="f-notes" placeholder="Anything the team needs before starting"></div>
+        </div>
+        <div class="fg fg-3">
+          <div><label class="lbl">Go-live date <span class="req">*</span></label><input type="date" id="f-launch"></div>
+          <div><label class="lbl">Asset deadline <span class="req">*</span></label><input type="date" id="f-deadline"></div>
+          <div><label class="lbl">Campaign end date</label><input type="date" id="f-end"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2: Objectives ── -->
+    <div class="card full-only" style="margin-bottom:10px">
+      <div class="card-head" onclick="tog(this)">
+        <div class="card-title"><div class="card-num">2</div>Objectives &amp; commercial targets</div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">Full / Custom</span><span class="card-chevron">▼</span></div>
+      </div>
+      <div class="card-body">
+        <div class="fl"><label class="lbl">Primary objective</label><textarea placeholder="Detailed primary objective with measurable outcomes…"></textarea></div>
+        <div class="fl"><label class="lbl">Secondary objectives</label><textarea placeholder="Supporting objectives…"></textarea></div>
+        <div class="fg fg-2">
+          <div><label class="lbl">Target revenue / pipeline</label><input type="text" placeholder="£2M pipeline contribution"></div>
+          <div><label class="lbl">Total budget</label><input type="text" placeholder="£50,000"></div>
+        </div>
+        <div class="fl"><label class="lbl">Expected ROI / ROAS target</label><input type="text" placeholder="4:1 ROAS, CPL under £30"></div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 3: Audience ── -->
+    <div class="card full-only" style="margin-bottom:10px">
+      <div class="card-head" onclick="tog(this)">
+        <div class="card-title"><div class="card-num">3</div>Audience definition</div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">Full / Custom</span><span class="card-chevron">▼</span></div>
+      </div>
+      <div class="card-body">
+        <div class="fl"><label class="lbl">Primary audience segment</label><textarea placeholder="Demographics, investor profile, geography, buying stage…"></textarea></div>
+        <div class="fl"><label class="lbl">Secondary audience segment</label><textarea placeholder="Supporting audience…"></textarea></div>
+        <div class="fg fg-2">
+          <div><label class="lbl">Investor persona(s)</label><input type="text" placeholder="HNW buy-to-let, 35–55, GCC-based"></div>
+          <div><label class="lbl">Lifecycle stage</label>
+            <select><option value="">Select…</option><option>Prospect</option><option>MQL</option><option>SQL</option><option>Existing client</option></select>
+          </div>
+        </div>
+        <div class="fl"><label class="lbl">Exclusions / suppressions</label><input type="text" placeholder="Recent purchasers, unsubscribes, existing SQL…"></div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 4: Regional Localisation ── -->
+    <div class="card full-only" style="margin-bottom:10px">
+      <div class="card-head" onclick="tog(this)">
+        <div class="card-title"><div class="card-num">4</div>Regional &amp; language localisation</div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">Full / Custom</span><span class="card-chevron">▼</span></div>
+      </div>
+      <div class="card-body">
+        <div class="rtabs">
+          <div class="rtab on" onclick="switchR('uk',this)">UK</div>
+          <div class="rtab" onclick="switchR('gcc-en',this)">GCC — EN</div>
+          <div class="rtab ar-tab" onclick="switchR('gcc-ar',this)">GCC — عربي</div>
+          <div class="rtab" onclick="switchR('asia',this)">Asia</div>
+          <div class="rtab" onclick="switchR('global',this)">Global</div>
+        </div>
+        <div class="rpanel on" id="rp-uk">
+          <div class="fg fg-2"><div><label class="lbl">Included</label><select><option>Yes</option><option>No</option></select></div><div><label class="lbl">Language</label><input type="text" value="EN" readonly></div></div>
+          <div class="fl"><label class="lbl">Key market nuance</label><textarea placeholder="UK buyer mindset, regulatory considerations…"></textarea></div>
+          <div class="fg fg-2"><div><label class="lbl">Offer / CTA adjustment</label><input type="text" placeholder="UK-specific CTA"></div><div><label class="lbl">Legal / compliance notes</label><input type="text" placeholder="FCA, ASA, GDPR"></div></div>
+          <div class="fl"><label class="lbl">Regional owner</label><select><option value="">Select…</option></select></div>
+        </div>
+        <div class="rpanel" id="rp-gcc-en">
+          <div class="fg fg-2"><div><label class="lbl">Included</label><select><option>Yes</option><option>No</option></select></div><div><label class="lbl">Language</label><input type="text" value="EN" readonly></div></div>
+          <div class="fl"><label class="lbl">Key market nuance</label><textarea placeholder="GCC investor profile, cultural tone…"></textarea></div>
+          <div class="fg fg-2"><div><label class="lbl">Offer / CTA adjustment</label><input type="text" placeholder="GCC-specific CTA"></div><div><label class="lbl">Legal / compliance notes</label><input type="text" placeholder="RERA, local ad regulations"></div></div>
+        </div>
+        <div class="rpanel" id="rp-gcc-ar">
+          <div class="rtl-note"><strong>Arabic version required.</strong> All fields below must be completed in Arabic and reviewed by Mohammed (Marketing Head GCC) before the brief can proceed to approval.</div>
+          <div class="fg fg-2">
+            <div><label class="lbl">Arabic mandatory <span class="req">*</span></label><select><option>Yes</option><option>No</option></select></div>
+            <div><label class="lbl">Arabic QA approver</label><select><option value="">Select…</option></select></div>
+          </div>
+          <div class="fl rtl-input"><label class="lbl">Key message — Arabic <span class="ar-badge">RTL</span></label><textarea placeholder="الرسالة الرئيسية بالعربية…" dir="rtl"></textarea></div>
+          <div class="fg fg-2 rtl-input">
+            <div><label class="lbl">CTA — Arabic <span class="ar-badge">RTL</span></label><input type="text" placeholder="سجّل اهتمامك…" dir="rtl"></div>
+            <div><label class="lbl">Arabic copy owner</label><select><option value="">Select…</option></select></div>
+          </div>
+          <div class="fl"><label class="lbl">Cultural notes</label><input type="text" placeholder="Cultural sensitivities, tone adjustments"></div>
+        </div>
+        <div class="rpanel" id="rp-asia">
+          <div class="fg fg-2"><div><label class="lbl">Included</label><select><option>Yes</option><option>No</option></select></div><div><label class="lbl">Language(s)</label><input type="text" placeholder="EN / Local — specify sub-markets"></div></div>
+          <div class="fl"><label class="lbl">Key market nuance</label><textarea placeholder="Asia sub-market specifics…"></textarea></div>
+        </div>
+        <div class="rpanel" id="rp-global">
+          <div class="fg fg-2"><div><label class="lbl">Included</label><select><option>Yes</option><option>No</option></select></div><div><label class="lbl">Master language</label><input type="text" value="EN" readonly></div></div>
+          <div class="fl"><label class="lbl">Brand guardrails / non-negotiables</label><textarea placeholder="Global brand rules that must apply everywhere…"></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 5: Messaging ── -->
+    <div class="card full-only" style="margin-bottom:10px">
+      <div class="card-head" onclick="tog(this)">
+        <div class="card-title"><div class="card-num">5</div>Value proposition &amp; messaging</div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">Full</span><span class="card-chevron">▼</span></div>
+      </div>
+      <div class="card-body">
+        <div class="fl"><label class="lbl">Core value proposition</label><textarea placeholder="The single most important thing the audience should know or feel…"></textarea></div>
+        <div class="fl"><label class="lbl">Supporting messages (max 3)</label><textarea placeholder="1. …&#10;2. …&#10;3. …"></textarea></div>
+        <div class="fl"><label class="lbl">Proof points / credentials</label><textarea placeholder="Awards, statistics, case studies…"></textarea></div>
+        <div class="fg fg-2"><div><label class="lbl">Primary CTA</label><input type="text" placeholder="Register interest"></div><div><label class="lbl">Secondary CTA</label><input type="text" placeholder="Download brochure"></div></div>
+        <div class="fl"><label class="lbl">Mandatory disclaimers</label><textarea placeholder="Any required legal disclaimers…"></textarea></div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 6: Channel Strategy ── -->
+    <div class="card full-only" style="margin-bottom:10px">
+      <div class="card-head" onclick="tog(this)">
+        <div class="card-title"><div class="card-num">6</div>Channel strategy &amp; budget</div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">Full</span><span class="card-chevron">▼</span></div>
+      </div>
+      <div class="card-body">
+        <div class="fg fg-2">
+          <div><label class="lbl">Budget split by channel</label><textarea placeholder="Paid 60%, Creative 20%, Email 10%, Social 10%"></textarea></div>
+          <div><label class="lbl">Flighting / phasing plan</label><textarea placeholder="Phase 1: Awareness (wks 1–2), Phase 2: Conversion (wks 3–6)"></textarea></div>
+        </div>
+        <table class="sp-table" style="margin-top:6px">
+          <thead><tr><th>Channel</th><th>UK (£)</th><th>GCC (£)</th><th>Asia (£)</th><th>Global (£)</th><th>Owner</th></tr></thead>
+          <tbody>
+            <tr><td>Paid media</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr><td>Creative</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+            <tr><td>CRM / email</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SECTION 7: KPIs ── -->
+    <div class="card full-only" style="margin-bottom:10px">
+      <div class="card-head" onclick="tog(this)">
+        <div class="card-title"><div class="card-num">7</div>KPI framework &amp; measurement</div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">Full</span><span class="card-chevron">▼</span></div>
+      </div>
+      <div class="card-body">
+        <table class="sp-table" id="kpi-table">
+          <thead><tr><th>KPI / metric</th><th>Target</th><th>Region</th><th>Tool</th><th>Frequency</th></tr></thead>
+          <tbody>
+            <tr><td><input type="text" placeholder="Qualified leads"></td><td><input type="text" placeholder="150/mo"></td><td><input type="text" placeholder="GCC"></td><td><input type="text" placeholder="Salesforce"></td><td><input type="text" placeholder="Weekly"></td></tr>
+            <tr><td><input type="text" placeholder="CPL"></td><td><input type="text" placeholder="under £25"></td><td><input type="text" placeholder="UK"></td><td><input type="text" placeholder="Google Ads"></td><td><input type="text" placeholder="Weekly"></td></tr>
+          </tbody>
+        </table>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="addKpi()">+ Add KPI</button>
+        <div class="divider"></div>
+        <div class="fg fg-2">
+          <div><label class="lbl">Dashboard owner</label><select><option value="">Select…</option></select></div>
+          <div><label class="lbl">Attribution model</label><select><option>Last click</option><option>First click</option><option>Linear</option><option>Data-driven</option></select></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 8: Risk ── -->
+    <div class="card full-only" style="margin-bottom:10px">
+      <div class="card-head" onclick="tog(this)">
+        <div class="card-title"><div class="card-num">8</div>Risk, compliance &amp; dependencies</div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="tag tag-gray">Full</span><span class="card-chevron">▼</span></div>
+      </div>
+      <div class="card-body">
+        <div class="fg fg-2">
+          <div><label class="lbl">Legal review required</label><select><option>No</option><option>Yes</option></select></div>
+          <div><label class="lbl">Compliance owner</label><select><option value="">Select…</option></select></div>
+        </div>
+        <div class="fl"><label class="lbl">Key risks</label><textarea placeholder="Market volatility, competitor activity, regulatory changes…"></textarea></div>
+        <div class="fl"><label class="lbl">Mitigation plan</label><textarea placeholder="How will risks be managed?"></textarea></div>
+        <div class="fl"><label class="lbl">Dependencies / blockers</label><textarea placeholder="Internal or external dependencies that could delay this campaign…"></textarea></div>
+      </div>
+    </div>
+
+    <!-- Submit bar -->
+    <div class="submit-bar">
+      <div>
+        <div class="submit-bar-l">Ready to submit?</div>
+        <div class="submit-bar-s">Brief goes to Joey for understanding confirmation, then into the approval chain.</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="toast('Draft saved')">Save draft</button>
+        <button class="btn btn-primary" onclick="submitBrief()">Submit brief</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: APPROVAL ══ -->
+  <div id="page-approval" style="display:none">
+    <h1 class="section-title">Approval chain</h1>
+    <p class="section-sub">Stage-gate approvals. Each stage unlocks only when the previous is complete.</p>
+
+    <div class="pipeline" id="approval-pipeline">
+      <div class="pipe-step done"><div class="pipe-dot">✓</div><div class="pipe-label">Draft<br>Complete</div></div>
+      <div class="pipe-step done"><div class="pipe-dot">✓</div><div class="pipe-label">Understanding<br>Confirmed</div></div>
+      <div class="pipe-step active"><div class="pipe-dot">3</div><div class="pipe-label">Content<br>Review</div></div>
+      <div class="pipe-step"><div class="pipe-dot">4</div><div class="pipe-label">Final<br>Approval</div></div>
+      <div class="pipe-step"><div class="pipe-dot">5</div><div class="pipe-label">Todoist<br>Push</div></div>
+    </div>
+
+    <!-- Understanding confirmation card -->
+    <div class="confirm-card">
+      <div class="confirm-title">Stage 2 complete — understanding confirmed</div>
+      <p style="font-size:12.5px;color:var(--tint-blue-t);margin-bottom:10px;line-height:1.55">Joey confirmed the interpretation. Brief locked for Stage 2 edits — content work has begun.</p>
+      <div class="confirm-fields">
+        <div class="confirm-row"><span class="confirm-key">Key objectives</span><span class="confirm-val">Generate 50 qualified GCC leads before 30 June</span></div>
+        <div class="confirm-row"><span class="confirm-key">Key messaging</span><span class="confirm-val">One Port Street — premium Manchester living from £350K. Register interest today.</span></div>
+        <div class="confirm-row"><span class="confirm-key">Audience</span><span class="confirm-val">GCC HNW investors, 35–55, buy-to-let focus</span></div>
+        <div class="confirm-row"><span class="confirm-key">Date of send</span><span class="confirm-val">15 June 2026</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="tag tag-green">Confirmed by Joey</span>
+        <span style="font-size:11.5px;color:var(--text-3)">12 June 2026, 10:32am</span>
+      </div>
+    </div>
+
+    <div class="stage-label">Stage 1 · Marketing exec / regional leads</div>
+    <div class="appr-chain">
+      <div class="appr-card">
+        <div class="appr-head">
+          <div class="appr-info">
+            <div class="appr-av" style="background: var(--tint-blue); color: var(--tint-blue-t)">JO</div>
+            <div><div class="appr-name">Joey</div><div class="appr-role">Content exec · Brief author</div></div>
+          </div>
+          <div class="appr-acts"><span class="tag tag-green">Brief created</span></div>
+        </div>
+      </div>
+      <div class="appr-card" id="ac-joey">
+        <div class="appr-head" onclick="toggleAC('joey')">
+          <div class="appr-info">
+            <div class="appr-av" style="background: var(--tint-green); color: var(--tint-green-t)">JO</div>
+            <div><div class="appr-name">Joey</div><div class="appr-role">Marketing exec — GCC</div></div>
+          </div>
+          <div class="appr-acts">
+            <span class="tag tag-amber" id="bs-joey">Pending review</span>
+            <button class="btn btn-ok btn-xs" onclick="event.stopPropagation();approve('joey')">Approve</button>
+            <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();openRevModal('joey','Joey')">Revisions</button>
+          </div>
+        </div>
+        <div class="appr-body" id="ab-joey">
+          <label class="lbl">Review comments</label>
+          <textarea id="ct-joey" placeholder="Add review comments (optional)…" style="min-height:52px"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage-label">Stage 2 · Head of marketing</div>
+    <div class="appr-chain">
+      <div class="appr-card" id="ac-hannah">
+        <div class="appr-head">
+          <div class="appr-info">
+            <div class="appr-av" style="background: var(--tint-amber); color: var(--tint-amber-t)">HA</div>
+            <div><div class="appr-name">Hannah</div><div class="appr-role">Head of marketing — global</div></div>
+          </div>
+          <div class="appr-acts"><span class="tag tag-gray" id="bs-hannah">Awaiting Stage 1</span></div>
+        </div>
+      </div>
+      <div class="appr-card" id="ac-amber">
+        <div class="appr-head">
+          <div class="appr-info">
+            <div class="appr-av" style="background: var(--tint-amber); color: var(--tint-amber-t)">AM</div>
+            <div><div class="appr-name">Amber</div><div class="appr-role">Head of marketing — GCC</div></div>
+          </div>
+          <div class="appr-acts"><span class="tag tag-gray" id="bs-amber">Awaiting Stage 1</span></div>
+        </div>
+      </div>
+      <div class="appr-card" id="ac-beth">
+        <div class="appr-head">
+          <div class="appr-info">
+            <div class="appr-av" style="background: var(--tint-blue); color: var(--tint-blue-t)">BE</div>
+            <div><div class="appr-name">Beth</div><div class="appr-role">Head of marketing — UK</div></div>
+          </div>
+          <div class="appr-acts"><span class="tag tag-gray" id="bs-beth">Awaiting Stage 1</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage-label">Stage 3 · CEO <span style="font-weight:400;font-size:11px">(Optional — trigger-based)</span></div>
+    <div class="appr-card optional-stage" id="ac-adam">
+      <div class="appr-head">
+        <div class="appr-info">
+          <div class="appr-av" style="background: var(--surface-alt); color: var(--text-2)">AP</div>
+          <div><div class="appr-name">Adam Price</div><div class="appr-role">CEO — required for high-budget, brand, or new-market campaigns</div></div>
+        </div>
+        <div class="appr-acts">
+          <span class="tag tag-gray">Skipped</span>
+          <button class="btn btn-ghost btn-xs" onclick="requireCEO()">Require CEO</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: CONTENT REVIEW ══ -->
+  <div id="page-review" style="display:none">
+    <h1 class="section-title">Content review</h1>
+    <p class="section-sub">Two rounds. Round 1 for feedback. Round 2 for sign-off only — no new edits accepted after Round 1 closes.</p>
+
+    <div class="banner b-warn">
+      <span class="banner-dot" style="background: var(--tint-amber-t)"></span>
+      <div><b>Round 1 open — feedback stage</b>Reviewers add comments here. Once all Round 1 boxes are ticked, the brief locks and Round 2 opens for final sign-off only.</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head" style="cursor:default"><div class="card-title">Brief understanding (confirmed before work started)</div><span class="tag tag-green">Confirmed by Joey</span></div>
+      <div class="card-body open">
+        <div class="confirm-fields">
+          <div class="confirm-row"><span class="confirm-key">Key objectives</span><span class="confirm-val">Generate 50 qualified GCC leads before 30 June</span></div>
+          <div class="confirm-row"><span class="confirm-key">Key messaging</span><span class="confirm-val">One Port Street — premium Manchester living from £350K. Register interest today.</span></div>
+          <div class="confirm-row"><span class="confirm-key">Audience</span><span class="confirm-val">GCC HNW investors, 35–55, buy-to-let focus</span></div>
+          <div class="confirm-row"><span class="confirm-key">Date of send</span><span class="confirm-val">15 June 2026</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head" style="cursor:default">
+        <div class="card-title">Reviewer sign-off tracker</div>
+        <div style="font-size:12px;color:var(--text-3)">Y/N per reviewer, per round</div>
+      </div>
+      <div class="card-body open">
+        <div class="review-grid" id="reviewer-grid"></div>
+        <div class="divider"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12.5px;color:var(--text-3)">Round 1 progress: <strong style="color:var(--text);font-weight:500" id="r1-count">0/4</strong> complete</span>
+          <button class="btn btn-primary btn-sm" onclick="closeRound1()" id="close-r1-btn" disabled>Close Round 1 → Open Round 2</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="round2-card" style="margin-bottom:14px;opacity:.4;pointer-events:none">
+      <div class="card-head" style="cursor:default">
+        <div class="card-title">Round 2 · Final sign-off</div>
+        <div><span class="tag tag-gray">Locked until Round 1 complete</span></div>
+      </div>
+      <div class="card-body open">
+        <div class="banner b-dark" style="margin-bottom:14px"><span class="banner-dot" style="background:var(--surface)"></span><div><b>No new edits from this point.</b> Round 2 is sign-off only. If changes are needed, the brief must be returned via the Approval page.</div></div>
+        <div class="review-grid" id="r2-grid"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" style="cursor:default"><div class="card-title">Feedback comments</div></div>
+      <div class="card-body open">
+        <div class="fl"><label class="lbl">Add feedback comment</label><textarea id="feedback-input" placeholder="e.g. The subject line needs to be shorter — try 'Manchester's finest: from £350K'" style="min-height:64px"></textarea></div>
+        <div class="fg fg-2">
+          <div><label class="lbl">From</label><select id="fb-from"><option value="">Select reviewer…</option></select></div>
+          <div><label class="lbl">Section</label><select><option>General</option><option>Headline / key message</option><option>CTA</option><option>Audience</option><option>Creative direction</option><option>Arabic copy</option></select></div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="addFeedback()">Add comment</button>
+        <div id="feedback-log" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: TODOIST ══ -->
+  <div id="page-todoist" style="display:none">
+    <h1 class="section-title">Push to Todoist</h1>
+    <p class="section-sub">Tasks are auto-generated from the approved brief. Map each team to a Todoist project, then push all in one click. Activates only after full approval.</p>
+
+    <div class="banner b-warn" id="todoist-warning">
+      <span class="banner-dot" style="background:var(--tint-amber-t)"></span>
+      <div><b>Brief not yet fully approved</b>Tasks will be ready to push once the final approval stage is complete. You can preview tasks below.</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-body open">
+        <div class="todoist-header">
+          <div class="todoist-logo-wrap"><div class="t-logo">T</div><strong style="font-size:14px;font-weight:500">Todoist project mapping</strong></div>
+          <button class="btn btn-primary btn-sm" onclick="pushTasks()">Push all selected tasks</button>
+        </div>
+        <div class="proj-map" id="proj-map"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body open">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <strong style="font-size:14px;color:var(--text);font-weight:500">Tasks to create</strong>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-xs" onclick="selectAllTasks(true)">Select all</button>
+            <button class="btn btn-ghost btn-xs" onclick="selectAllTasks(false)">Deselect all</button>
+          </div>
+        </div>
+        <div id="task-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: TEAM ══ -->
+  <div id="page-team" style="display:none">
+    <h1 class="section-title">Team directory</h1>
+    <p class="section-sub">SelectProperty marketing team and their roles in the briefing workflow.</p>
+    <div class="team-grid" id="team-grid"></div>
+  </div>
+
+  <!-- ══ PAGE: QA ══ -->
+  <div id="page-qa" style="display:none">
+    <h1 class="section-title">Pre-launch QA checklist</h1>
+    <p class="section-sub">Complete before the campaign goes live. Full brief uses the extended list; Quick brief uses only the core section.</p>
+    <div id="qa-list"></div>
+  </div>
+
+  <!-- ══ PAGE: LOG ══ -->
+  <div id="page-log" style="display:none">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+      <div><h1 class="section-title">Revision log</h1><p class="section-sub">Auto-populated as the brief moves through stages.</p></div>
+      <button class="btn btn-ghost btn-sm" onclick="addLogEntry()">+ Add note</button>
+    </div>
+    <div id="rev-log"></div>
+  </div>
+
+  </div><!-- /body -->
+</div><!-- /workspace -->
+</div><!-- /shell -->
+
+<!-- MODAL -->
+<div class="overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-ttl" id="modal-ttl">Request revisions</div>
+      <button class="modal-x" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast-el"></div>
+
+<script>
+// ── DATA ──
+const TEAM = [
+  {name:'Hannah',   init:'HA', role:'Head of marketing',       sub:'Global',   color:'--tint-amber',  tcolor:'--tint-amber-t',  resp:'Global oversight, HoM approvals, strategic sign-off'},
+  {name:'Amber',    init:'AM', role:'Head of marketing GCC',   sub:'GCC',      color:'--tint-amber',  tcolor:'--tint-amber-t',  resp:'GCC strategy, GCC approvals, regional performance'},
+  {name:'Beth',     init:'BE', role:'Head of marketing UK',    sub:'UK',       color:'--tint-blue',   tcolor:'--tint-blue-t',   resp:'UK strategy, UK approvals, market nuance'},
+  {name:'Joey',     init:'JO', role:'Content executive',       sub:'GCC',      color:'--tint-green',  tcolor:'--tint-green-t',  resp:'Brief creation, understanding confirmation, campaign coordination'},
+  {name:'Chris',    init:'CR', role:'Creative lead',           sub:'Global',   color:'--tint-purple', tcolor:'--tint-purple-t', resp:'Creative direction, asset oversight, brand consistency'},
+  {name:'Matheen',  init:'MA', role:'Digital design manager',  sub:'Global',   color:'--tint-teal',   tcolor:'--tint-teal-t',   resp:'Digital design, motion, creative execution'},
+  {name:'Alex',     init:'AX', role:'Social media exec',       sub:'Global',   color:'--tint-pink',   tcolor:'--tint-pink-t',   resp:'Paid social, organic social, community management'},
+  {name:'Rhiannon', init:'RH', role:'CRM manager',             sub:'Global',   color:'--tint-green',  tcolor:'--tint-green-t',  resp:'Email campaigns, CRM journeys, audience segmentation'},
+  {name:'Adam Price',init:'AP',role:'CEO',                     sub:'Global',   color:'--tint-gray',   tcolor:'--tint-gray-t',   resp:'CEO sign-off on high-value, strategic or new-market campaigns'},
+  {name:'Mohammed', init:'MO', role:'Marketing head GCC (Arabic)',sub:'GCC',   color:'--tint-amber',  tcolor:'--tint-amber-t',  resp:'Arabic copy creation, Arabic QA, RTL layout review, cultural nuance'},
+];
+
+const PROJECTS = [
+  {name:'Global Marketing',                 slug:'global'},
+  {name:'One Port Street',                  slug:'one-port'},
+  {name:'Affinity Living',                  slug:'affinity'},
+  {name:'DXB Re-sale',                      slug:'dxb'},
+  {name:'Select Residential',               slug:'select-res'},
+  {name:'Edition Birmingham',               slug:'edition'},
+  {name:'Vita Living Circle Square - North',slug:'vita'},
+];
+
+const TASKS = [
+  {title:'Brief understanding confirmation — send interpretation to requester',team:'Global',   assignee:'Joey',     due:'+1d'},
+  {title:'Creative concept and mood board',                                    team:'Creative',  assignee:'Chris',    due:'+3d'},
+  {title:'Produce all static ad assets (EN)',                                  team:'Creative',  assignee:'Matheen',  due:'+7d'},
+  {title:'Produce Arabic RTL creative assets (GCC)',                           team:'Creative',  assignee:'Matheen',  due:'+8d'},
+  {title:'Build email campaign journey in CRM',                                team:'CRM',       assignee:'Rhiannon', due:'+5d'},
+  {title:'Write EN email copy + subject line variants',                        team:'CRM',       assignee:'Joey',     due:'+4d'},
+  {title:'Arabic email copy — Mohammed to review & QA',                        team:'CRM',       assignee:'Mohammed', due:'+6d'},
+  {title:'Set up Meta paid campaigns (UK + GCC)',                              team:'Paid ads',  assignee:'Alex',     due:'+6d'},
+  {title:'Set up Google Search campaigns',                                     team:'Paid ads',  assignee:'Alex',     due:'+6d'},
+  {title:'Agency briefing pack + handover document',                           team:'Paid ads',  assignee:'Joey',     due:'+4d'},
+  {title:'Schedule organic social posts — EN',                                 team:'Social',    assignee:'Alex',     due:'+5d'},
+  {title:'Schedule GCC Arabic social posts',                                   team:'Social',    assignee:'Mohammed', due:'+6d'},
+  {title:'Pre-launch QA — all channels',                                       team:'Global',    assignee:'Hannah',   due:'+9d'},
+];
+
+const REVIEWERS = [
+  {name:'Amber',    init:'AM', color:'--tint-amber',  tcolor:'--tint-amber-t'},
+  {name:'Beth',     init:'BE', color:'--tint-blue',   tcolor:'--tint-blue-t'},
+  {name:'Rhiannon', init:'RH', color:'--tint-green',  tcolor:'--tint-green-t'},
+  {name:'Hannah',   init:'HA', color:'--tint-amber',  tcolor:'--tint-amber-t'},
+];
+
+const QA_ITEMS = [
+  {text:'Brand guidelines check completed — all assets approved',                       full:false},
+  {text:'Legal / compliance sign-off completed',                                        full:false},
+  {text:'Tracking QA — UTM, pixel, conversion events verified',                        full:false},
+  {text:'Landing page QA — links, forms, load speed tested',                            full:false},
+  {text:'CRM rendering + link check — dynamic fields tested across email clients',      full:false},
+  {text:'Arabic language QA completed — RTL layout, copy reviewed by Mohammed',         full:false},
+  {text:'UK regional approval completed (Beth)',                                        full:false},
+  {text:'GCC regional approval completed (Amber + Mohammed)',                           full:false},
+  {text:'Todoist tasks pushed and confirmed by all team leads',                         full:false},
+  {text:'Post-campaign review date booked in shared calendar',                          full:true},
+  {text:'Asset archive uploaded to shared folder',                                      full:true},
+  {text:'Attribution model confirmed and dashboard live',                               full:true},
+];
+
+const LOG_ENTRIES = [
+  {v:'v1',action:'Brief created by Joey',who:'Joey',when:'Today, 09:14'},
+  {v:'v1',action:'Understanding confirmation sent to requester — awaiting confirmation',who:'Joey',when:'Today, 09:22'},
+  {v:'v1',action:'Requester confirmed brief understanding',who:'Requester',when:'Today, 10:05'},
+];
+
+// ── STATE ──
+let currentMode = 'quick';
+let r1Ticked = {Amber:false, Beth:false, Rhiannon:false, Hannah:false};
+let feedbacks = [];
+let revModal = {target:''};
+
+// ── BOOT ──
+window.addEventListener('DOMContentLoaded', () => {
+  genID(); setToday();
+  populateAllSelects();
+  renderTeam(); renderQA(); renderTasks(); renderProjMap(); renderReviewGrid(); renderLog();
+  applyMode('quick');
+});
+
+function genID() {
+  document.getElementById('f-id').value = `SP-CB-${new Date().getFullYear()}-${String(Math.floor(Math.random()*999)+1).padStart(3,'0')}`;
+}
+function setToday() {
+  const t = new Date().toISOString().split('T')[0];
+  const el = document.getElementById('f-reqdate');
+  if (el) el.value = t;
+}
+
+function populateAllSelects() {
+  const ownerEl = document.getElementById('f-owner');
+  if (ownerEl) {
+    TEAM.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.name; o.textContent = `${m.name} — ${m.role}`;
+      ownerEl.appendChild(o);
+    });
+  }
+  document.querySelectorAll('select').forEach(sel => {
+    if (sel.id === 'f-owner') return;
+    if (sel.options.length <= 1 && (!sel.options[0] || sel.options[0].value === '')) {
+      TEAM.forEach(m => {
+        const o = document.createElement('option');
+        o.value = m.name; o.textContent = m.name;
+        sel.appendChild(o);
+      });
+    }
+  });
+  const fbFrom = document.getElementById('fb-from');
+  if (fbFrom) {
+    TEAM.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.name; o.textContent = m.name;
+      fbFrom.appendChild(o);
+    });
+  }
+}
+
+// ── NAV ──
+function nav(el) {
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('on'));
+  el.classList.add('on');
+  const page = el.dataset.page;
+  document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
+  document.getElementById('page-' + page).style.display = '';
+  document.getElementById('tb-section').textContent = el.textContent.trim().replace(/[0-9]/g, '');
+  document.getElementById('tb-sep').style.display = 'none';
+  document.getElementById('tb-campaign').textContent = '';
+  document.getElementById('tb-badge-wrap').innerHTML = '';
+  document.getElementById('tb-actions').innerHTML = '';
+  if (page === 'new-brief') {
+    document.getElementById('tb-actions').innerHTML = '<button class="btn btn-ghost btn-sm" onclick="toast(\'Draft saved\')">Save draft</button><button class="btn btn-primary btn-sm" onclick="submitBrief()">Submit brief</button>';
+  }
+}
+
+function loadDemoBrief() {
+  nav(document.querySelector('[data-page="approval"]'));
+  document.getElementById('tb-sep').style.display = '';
+  document.getElementById('tb-campaign').textContent = 'Dubai Q3 lead gen';
+  document.getElementById('tb-badge-wrap').innerHTML = '<span class="tag tag-blue" style="margin-left:8px">In review</span>';
+}
+
+// ── MODE ──
+function selectMode(m) {
+  currentMode = m;
+  ['quick','full','custom'].forEach(x => {
+    document.getElementById('mode-' + x).classList.toggle('selected', x === m);
+  });
+  document.getElementById('custom-picker').style.display = m === 'custom' ? 'block' : 'none';
+  applyMode(m);
+}
+
+function applyMode(m) {
+  document.querySelectorAll('.full-only').forEach(c => {
+    c.style.display = m === 'quick' ? 'none' : '';
+  });
+}
+
+// ── COLLAPSIBLE ──
+function tog(head) {
+  const body = head.nextElementSibling;
+  const chev = head.querySelector('.card-chevron');
+  const open = body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open', open);
+}
+
+// ── PILLS ──
+function togglePill(el) { el.classList.toggle('on'); }
+
+// ── REGION TABS ──
+function switchR(id, tab) {
+  const parent = tab.closest('.card-body');
+  parent.querySelectorAll('.rtab').forEach(t => t.classList.remove('on'));
+  tab.classList.add('on');
+  parent.querySelectorAll('.rpanel').forEach(p => p.classList.remove('on'));
+  parent.querySelector('#rp-' + id).classList.add('on');
+}
+
+function updateTrail() {
+  const v = document.getElementById('f-name').value;
+  document.getElementById('tb-campaign').textContent = v || '';
+  if (v) { document.getElementById('tb-sep').style.display = ''; document.getElementById('tb-section').textContent = 'New brief'; }
+}
+
+// ── KPI ──
+function addKpi() {
+  const tb = document.querySelector('#kpi-table tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td><input type="text" placeholder="KPI"></td><td><input type="text" placeholder="Target"></td><td><input type="text" placeholder="Region"></td><td><input type="text" placeholder="Tool"></td><td><input type="text" placeholder="Freq."></td>';
+  tb.appendChild(tr);
+}
+
+// ── SUBMIT ──
+function submitBrief() {
+  const n = document.getElementById('f-name').value.trim();
+  const o = document.getElementById('f-obj1').value.trim();
+  if (!n || !o) { toast('Campaign name and objective are required'); return; }
+  toast('Brief submitted — understanding confirmation on its way');
+  setTimeout(() => nav(document.querySelector('[data-page="approval"]')), 1200);
+}
+
+// ── APPROVAL ──
+function toggleAC(id) {
+  const b = document.getElementById('ab-' + id);
+  if (b) b.classList.toggle('open');
+}
+
+function approve(id) {
+  const bs = document.getElementById('bs-' + id);
+  const card = document.getElementById('ac-' + id);
+  bs.className = 'tag tag-green'; bs.textContent = 'Approved';
+  card.querySelector('.appr-acts').querySelectorAll('.btn').forEach(b => b.remove());
+  card.querySelector('.appr-head').style.background = 'var(--tint-green)';
+  const comment = document.getElementById('ct-' + id)?.value.trim();
+  if (comment) {
+    let body = document.getElementById('ab-' + id);
+    if (body) { body.classList.add('open'); body.innerHTML = `<div class="appr-ok">${comment}</div>`; }
+  }
+  unlockStage2();
+  toast('Approved — Stage 2 reviewers notified');
+}
+
+function unlockStage2() {
+  ['hannah','amber','beth'].forEach(id => {
+    const bs = document.getElementById('bs-' + id);
+    const card = document.getElementById('ac-' + id);
+    if (!bs) return;
+    bs.className = 'tag tag-amber'; bs.textContent = 'Pending review';
+    const acts = card.querySelector('.appr-acts');
+    acts.innerHTML = `<span class="tag tag-amber" id="bs-${id}">Pending review</span>
+      <button class="btn btn-ok btn-xs" onclick="approveHoM('${id}')">Approve</button>
+      <button class="btn btn-ghost btn-xs" onclick="openRevModal('${id}','${id.charAt(0).toUpperCase()+id.slice(1)}')">Revisions</button>`;
+  });
+}
+
+function approveHoM(id) {
+  const bs = document.getElementById('bs-' + id);
+  const card = document.getElementById('ac-' + id);
+  bs.className = 'tag tag-green'; bs.textContent = 'Approved';
+  card.querySelector('.appr-acts').querySelectorAll('.btn').forEach(b => b.remove());
+  card.querySelector('.appr-head').style.background = 'var(--tint-green)';
+  toast(`${id.charAt(0).toUpperCase() + id.slice(1)} approved`);
+  const allDone = ['hannah','amber','beth'].every(x => document.getElementById('bs-' + x)?.textContent.includes('Approved'));
+  if (allDone) {
+    setTimeout(() => toast('All approvals complete — Todoist tasks ready to push'), 600);
+    const w = document.getElementById('todoist-warning');
+    w.innerHTML = '<span class="banner-dot" style="background:var(--tint-green-t)"></span><div><b>Brief fully approved</b>All tasks are ready to push to Todoist.</div>';
+    w.className = 'banner b-ok';
+  }
+}
+
+function requireCEO() {
+  const card = document.getElementById('ac-adam');
+  card.classList.remove('optional-stage');
+  card.querySelector('.appr-acts').innerHTML = `
+    <span class="tag tag-amber">Pending review</span>
+    <button class="btn btn-ok btn-xs" onclick="approveHoM('adam')">Approve</button>
+    <button class="btn btn-ghost btn-xs" onclick="openRevModal('adam','Adam Price')">Revisions</button>`;
+  toast('CEO approval now required for this campaign');
+}
+
+// ── REVISION MODAL ──
+function openRevModal(id, name) {
+  revModal.target = id;
+  document.getElementById('modal-ttl').textContent = `Request revisions — ${name}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="fl"><label class="lbl">Reviewer</label><input type="text" value="${name}" readonly></div>
+    <div class="fl"><label class="lbl">Comments / changes required <span class="req">*</span></label><textarea id="rev-comment" placeholder="Describe what needs to change…" style="min-height:90px"></textarea></div>
+    <div class="fl"><label class="lbl">Severity</label><select><option>Minor — small edits</option><option>Moderate — section rework</option><option>Major — significant revision</option></select></div>`;
+  document.getElementById('modal-foot').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-danger" onclick="submitRevision()">Return for revision</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+function submitRevision() {
+  const comment = document.getElementById('rev-comment')?.value.trim();
+  if (!comment) { toast('Add comments before returning'); return; }
+  const id = revModal.target;
+  const bs = document.getElementById('bs-' + id);
+  if (bs) { bs.className = 'tag tag-red'; bs.textContent = 'Revisions required'; }
+  const card = document.getElementById('ac-' + id);
+  if (card) {
+    card.querySelector('.appr-acts').querySelectorAll('.btn').forEach(b => b.remove());
+    card.querySelector('.appr-head').style.background = 'var(--tint-red)';
+    let body = document.getElementById('ab-' + id);
+    if (!body) { body = document.createElement('div'); body.className = 'appr-body open'; body.id = 'ab-' + id; card.appendChild(body); }
+    else body.classList.add('open');
+    body.innerHTML = `<div class="appr-comment">${comment}</div>`;
+  }
+  LOG_ENTRIES.push({v:'v' + (LOG_ENTRIES.length + 1), action: `Brief returned for revision — ${comment}`, who: id, when: 'Just now'});
+  renderLog();
+  closeModal();
+  toast('Brief returned — author notified');
+}
+
+// ── CONTENT REVIEW ──
+function renderReviewGrid() {
+  const g = document.getElementById('reviewer-grid');
+  const g2 = document.getElementById('r2-grid');
+  if (!g || !g2) return;
+  g.innerHTML = ''; g2.innerHTML = '';
+  REVIEWERS.forEach(r => {
+    const t = TEAM.find(x => x.name === r.name);
+    const d = document.createElement('div');
+    d.className = 'reviewer-card';
+    d.innerHTML = `<div class="rev-info"><div class="rev-av" style="background: var(${r.color}); color: var(${r.tcolor})">${r.init}</div><div><strong style="font-size:13px;font-weight:500">${r.name}</strong><div style="font-size:11.5px;color:var(--text-3)">${t?.role || ''}</div></div></div>
+      <div>
+        <div class="rev-rnd"><div class="rnd-box" id="r1-${r.name}" onclick="tickRound(1,'${r.name}')">R1</div><div class="rnd-box" id="r2-${r.name}" onclick="tickRound(2,'${r.name}')">R2</div></div>
+        <div class="rnd-label">R1 · R2</div>
+      </div>`;
+    g.appendChild(d);
+    const d2 = document.createElement('div');
+    d2.className = 'reviewer-card';
+    d2.innerHTML = `<div class="rev-info"><div class="rev-av" style="background: var(${r.color}); color: var(${r.tcolor})">${r.init}</div><div><strong style="font-size:13px;font-weight:500">${r.name}</strong></div></div>
+      <div class="rnd-box" id="r2b-${r.name}" onclick="tickR2b('${r.name}')">R2</div>`;
+    g2.appendChild(d2);
+  });
+}
+
+function tickRound(round, name) {
+  if (round === 1) {
+    r1Ticked[name] = !r1Ticked[name];
+    const box = document.getElementById('r1-' + name);
+    box.classList.toggle('r1-done', r1Ticked[name]);
+    box.textContent = r1Ticked[name] ? '✓' : 'R1';
+    updateR1Count();
+  } else {
+    const box = document.getElementById('r2-' + name);
+    const on = box.classList.toggle('r2-done');
+    box.textContent = on ? '✓' : 'R2';
+  }
+}
+
+function tickR2b(name) {
+  const box = document.getElementById('r2b-' + name);
+  const on = box.classList.toggle('r2-done');
+  box.textContent = on ? '✓' : 'R2';
+}
+
+function updateR1Count() {
+  const done = Object.values(r1Ticked).filter(Boolean).length;
+  const total = REVIEWERS.length;
+  document.getElementById('r1-count').textContent = `${done}/${total}`;
+  document.getElementById('close-r1-btn').disabled = done < total;
+}
+
+function closeRound1() {
+  document.getElementById('round2-card').style.opacity = '1';
+  document.getElementById('round2-card').style.pointerEvents = 'auto';
+  const badge = document.querySelector('#round2-card .card-head .tag');
+  badge.className = 'tag tag-green'; badge.textContent = 'Round 2 open';
+  document.getElementById('close-r1-btn').textContent = 'Round 1 closed';
+  document.getElementById('close-r1-btn').disabled = true;
+  document.getElementById('close-r1-btn').className = 'btn btn-ok btn-sm';
+  const banner = document.querySelector('#page-review .banner');
+  banner.className = 'banner b-ok';
+  banner.innerHTML = '<span class="banner-dot" style="background:var(--tint-green-t)"></span><div><b>Round 1 closed — Round 2 open.</b> Sign-off only. No new edits accepted. Brief proceeds to final approval once all Round 2 boxes are ticked.</div>';
+  toast('Round 2 opened — reviewers notified');
+}
+
+function addFeedback() {
+  const text = document.getElementById('feedback-input').value.trim();
+  const from = document.getElementById('fb-from').value;
+  if (!text) { toast('Enter a comment first'); return; }
+  feedbacks.push({text, from: from || 'Anon', time: 'Just now'});
+  renderFeedbacks();
+  document.getElementById('feedback-input').value = '';
+}
+
+function renderFeedbacks() {
+  const log = document.getElementById('feedback-log');
+  log.innerHTML = feedbacks.map(f => `<div class="fb-item"><strong>${f.from}</strong>: ${f.text}<div class="fb-time">${f.time}</div></div>`).join('');
+}
+
+// ── TODOIST ──
+function renderProjMap() {
+  const map = {creative:'Creative', crm:'CRM', paid:'Paid', social:'Social', global:'Global'};
+  const g = document.getElementById('proj-map');
+  if (!g) return;
+  g.innerHTML = Object.entries(map).map(([k, label]) => `
+    <div class="proj-row"><span style="min-width:130px;color:var(--text-2)">${label} team →</span>
+    <select id="proj-${k}">${PROJECTS.map(p => `<option value="${p.slug}">${p.name}</option>`).join('')}</select></div>`).join('');
+}
+
+function renderTasks() {
+  const list = document.getElementById('task-list');
+  if (!list) return;
+  list.innerHTML = '';
+  TASKS.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.className = 'task-item';
+    d.innerHTML = `<div class="t-chk on" id="tc-${i}" onclick="toggleTask(${i})">✓</div>
+      <div class="t-info"><div class="t-title">${t.title}</div><div class="t-meta">Assigned: ${t.assignee} · Due: ${t.due} from go-live</div></div>
+      <div class="t-proj">${t.team}</div>`;
+    list.appendChild(d);
+  });
+}
+
+function toggleTask(i) {
+  const el = document.getElementById('tc-' + i);
+  const on = el.classList.toggle('on');
+  el.textContent = on ? '✓' : '';
+}
+
+function selectAllTasks(on) {
+  TASKS.forEach((_, i) => {
+    const el = document.getElementById('tc-' + i);
+    if (on) { el.classList.add('on'); el.textContent = '✓'; }
+    else { el.classList.remove('on'); el.textContent = ''; }
+  });
+}
+
+function pushTasks() {
+  const selected = TASKS.filter((_, i) => document.getElementById('tc-' + i)?.classList.contains('on'));
+  if (!selected.length) { toast('No tasks selected'); return; }
+  toast(`Pushing ${selected.length} tasks to Todoist…`);
+  setTimeout(() => toast('Tasks created. Team notified.'), 1800);
+}
+
+// ── TEAM ──
+function renderTeam() {
+  const g = document.getElementById('team-grid');
+  if (!g) return;
+  TEAM.forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'team-card';
+    d.innerHTML = `<div class="t-av-lg" style="background: var(${m.color}); color: var(${m.tcolor})">${m.init}</div>
+      <div><div class="t-name">${m.name}</div><div class="t-role">${m.role}</div>
+      <div class="t-region">${m.sub}</div>
+      <div class="t-resp">${m.resp}</div></div>`;
+    g.appendChild(d);
+  });
+}
+
+// ── QA ──
+function renderQA() {
+  const list = document.getElementById('qa-list');
+  if (!list) return;
+  let coreDone = false, fullDone = false;
+  QA_ITEMS.forEach((item, i) => {
+    if (!item.full && !coreDone) {
+      list.innerHTML += `<div class="qa-group-h">Core QA</div>`;
+      coreDone = true;
+    }
+    if (item.full && !fullDone) {
+      list.innerHTML += `<div class="qa-group-h">Full brief only</div>`;
+      fullDone = true;
+    }
+    const d = document.createElement('div');
+    d.className = 'qa-item';
+    d.id = 'qa-' + i;
+    d.innerHTML = `<div class="qa-box" id="qab-${i}">✓</div><span>${item.text}</span>${item.full ? '<span class="tag tag-dark" style="margin-left:auto;flex-shrink:0">Full</span>' : ''}`;
+    d.onclick = () => {
+      d.classList.toggle('checked');
+      document.getElementById('qab-' + i).textContent = d.classList.contains('checked') ? '✓' : '';
+    };
+    list.appendChild(d);
+  });
+}
+
+// ── LOG ──
+function renderLog() {
+  const el = document.getElementById('rev-log');
+  if (!el) return;
+  el.innerHTML = LOG_ENTRIES.map((e, i) => `
+    <div class="rev-entry">
+      <div class="rev-spine"><div class="rev-dot"></div>${i < LOG_ENTRIES.length - 1 ? '<div class="rev-line"></div>' : ''}</div>
+      <div class="rev-body"><strong>${e.v}</strong> — ${e.action}<div class="rev-who">${e.who} · ${e.when}</div></div>
+    </div>`).join('');
+}
+
+function addLogEntry() {
+  const note = prompt('Add a revision note:');
+  if (!note) return;
+  LOG_ENTRIES.push({v:'v' + (LOG_ENTRIES.length + 1), action: note, who:'Manual entry', when:'Just now'});
+  renderLog();
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const el = document.getElementById('toast-el');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

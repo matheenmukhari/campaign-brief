@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard · SelectProperty</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="shell">
+    <div id="sidebar"></div>
+    <div id="workspace">
+      <div id="topbar">
+        <div class="tb-trail" id="tb-trail"></div>
+        <div class="tb-right" id="tb-actions"></div>
+      </div>
+      <div id="body">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px;">
+          <div>
+            <h1 class="greet-h1" id="greet">Loading…</h1>
+            <p class="greet-sub" id="sub"></p>
+          </div>
+          <a href="/new-brief.html" class="btn btn-primary">+ New brief</a>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-lbl">Active</div>
+            <div class="stat-val" id="stat-active">— <span class="stat-dot" style="background: var(--text)"></span></div>
+            <div class="stat-sub">All statuses</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">Pending approval</div>
+            <div class="stat-val" id="stat-pending">— <span class="stat-dot" style="background: var(--amber)"></span></div>
+            <div class="stat-sub">Awaiting sign-off</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">In review</div>
+            <div class="stat-val" id="stat-review">— <span class="stat-dot" style="background: var(--blue)"></span></div>
+            <div class="stat-sub">Feedback round</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">Approved</div>
+            <div class="stat-val" id="stat-approved">— <span class="stat-dot" style="background: var(--green)"></span></div>
+            <div class="stat-sub">Fully signed off</div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h2 style="font-size: 15px; font-weight: 500; color: var(--text); letter-spacing: -0.01em;">Recent briefs</h2>
+        </div>
+
+        <div class="brief-list" id="brief-list">
+          <div class="empty-state">Loading briefs…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

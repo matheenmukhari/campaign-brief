@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SelectProperty · Sign in</title>
+  <style>
+    :root {
+      --bg: #f8f6f3;
+      --surface: #FFFFFF;
+      --border: #E8E3DA;
+      --border-strong: #CFC7B8;
+      --text: #171717;
+      --text-2: #5C5C5C;
+      --text-3: #A0A0A0;
+      --danger: #E24B4A;
+      --danger-bg: #FAECE7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      letter-spacing: -0.005em;
+    }
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 5px;
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+    }
+    .brand {
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .sub {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-bottom: 32px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-2);
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 0.5px solid var(--border-strong);
+      border-radius: 5px;
+      font-size: 13.5px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      margin-bottom: 16px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      letter-spacing: -0.005em;
+    }
+    input:focus {
+      border-color: var(--text);
+      box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.06);
+    }
+    button {
+      width: 100%;
+      background: var(--text);
+      color: var(--surface);
+      border: none;
+      padding: 11px 16px;
+      border-radius: 5px;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: -0.005em;
+      transition: background 0.15s;
+    }
+    button:hover:not(:disabled) { background: #2E2E2E; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error {
+      background: var(--danger-bg);
+      color: var(--danger);
+      padding: 9px 12px;
+      border-radius: 5px;
+      font-size: 12.5px;
+      margin-bottom: 16px;
+      min-height: 0;
+    }
+    .error:empty { display: none; }
+    .hint {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 0.5px solid var(--border);
+      font-size: 11.5px;
+      color: var(--text-3);
+      line-height: 1.55;
+    }
+    .hint code {
+      background: #F0EDE7;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">SelectProperty</div>
+    <div class="sub">Campaign briefing</div>
+
+    <h1>Sign in</h1>
+
+    <form id="login-form">
+      <div class="error" id="login-error"></div>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" required autocomplete="username" placeholder="you@selectproperty.com">
+
+      <label for="password">Password</label>
+      <input type="password" id="password" required autocomplete="current-password">
+
+      <button type="submit" id="login-btn">Sign in</button>
+    </form>
+
+    <div class="hint">
+      <strong style="color: var(--text-2); font-weight: 500;">Local dev accounts</strong><br>
+      Try <code>joey@test.com</code> · <code>hannah@test.com</code> · <code>amber@test.com</code><br>
+      Password: <code>password123</code>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+</body>
+</html>
