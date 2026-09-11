@@ -117,6 +117,10 @@ function addApprover() {
   if (!userId) return;
   const user = _teamUsers.find(u => String(u.id) === userId);
   if (!user) return;
+  if (approvalChain.some(u => String(u.id) === userId)) {
+    toast(`${user.name} is already in the chain`);
+    return;
+  }
   approvalChain.push({ id: user.id, name: user.name, initials: user.initials, role: user.role });
   sel.value = '';
   renderChain();

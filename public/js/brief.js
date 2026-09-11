@@ -433,6 +433,10 @@ function addToEditorChain() {
   if (!userId) return;
   const user = _chainUsers.find(u => String(u.id) === userId);
   if (!user) return;
+  if (_chainEditorChain.some(u => String(u.id) === userId)) {
+    toast(`${user.name} is already in the chain`);
+    return;
+  }
   _chainEditorChain.push({ id: user.id, name: user.name, initials: user.initials, role: user.role });
   sel.value = '';
   renderChainEditorList();
@@ -451,7 +455,6 @@ function moveInEditorChain(i, dir) {
 }
 
 async function saveChain() {
-  if (!_chainEditorChain.length) { toast('Add at least one approver'); return; }
   try {
     await apiCall('PUT', `/api/approvals/brief/${brief.id}/chain`, {
       approvers: _chainEditorChain.map(u => u.id),

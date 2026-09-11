@@ -345,8 +345,8 @@ router.put('/brief/:id/chain', async (req, res) => {
     const { id } = req.params;
     const { approvers } = req.body;
 
-    if (!approvers || !Array.isArray(approvers) || approvers.length === 0) {
-      return res.status(400).json({ error: 'At least one approver is required' });
+    if (!approvers || !Array.isArray(approvers)) {
+      return res.status(400).json({ error: 'approvers must be an array' });
     }
 
     const { rows: [brief] } = await client.query(
