@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
       development_name, objective, key_message,
       regions, channels, asset_type, notes,
       go_live_date, asset_deadline, end_date,
-      requires_ceo, requires_arabic, data,
+      requires_ceo, requires_arabic, data, approvers,
     } = req.body;
 
     if (!name || !mode) {
@@ -55,6 +55,9 @@ router.post('/', async (req, res) => {
     }
     if (!['quick', 'full', 'custom'].includes(mode)) {
       return res.status(400).json({ error: 'Mode must be quick, full, or custom' });
+    }
+    if (!approvers || !Array.isArray(approvers) || approvers.length === 0) {
+      return res.status(400).json({ error: 'At least one approver is required' });
     }
 
     await client.query('BEGIN');
@@ -84,12 +87,11 @@ router.post('/', async (req, res) => {
     );
     const brief = briefResult.rows[0];
 
-    if (data && Object.keys(data).length) {
-      await client.query(
-        `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2)`,
-        [brief.id, JSON.stringify(data)]
-      );
-    }
+    const briefDataPayload = { ...(data || {}), approval_chain: approvers };
+    await client.query(
+      `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2)`,
+      [brief.id, JSON.stringify(briefDataPayload)]
+    );
 
     await logAction(client, brief.id, req.user.id, 'created', `Brief created by ${req.user.name}`);
 
@@ -245,6 +247,15 @@ router.patch('/:id', async (req, res) => {
         `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2)
          ON CONFLICT (brief_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
         [id, JSON.stringify(req.body.data)]
+      );
+    }
+
+    if (req.body.approvers !== undefined) {
+      await client.query(
+        `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2::jsonb)
+         ON CONFLICT (brief_id) DO UPDATE
+         SET data = brief_data.data || $2::jsonb, updated_at = NOW()`,
+        [id, JSON.stringify({ approval_chain: req.body.approvers })]
       );
     }
 

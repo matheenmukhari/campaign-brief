@@ -18,66 +18,6 @@ async function logAction(client, briefId, actorId, action, detail = null) {
   );
 }
 
-// ── Determine who approves this brief ──
-// Stage 1: Joey (Marketing Executive)
-// Stage 2: Regional HoM(s) — Amber for GCC, Beth for UK. Mohammed also at Stage 2 for Arabic.
-// Stage 3: Hannah (Global HoM) — final regional gate
-// Stage 4: CEO (only if triggered)
-async function determineApprovers(brief) {
-  const { rows: users } = await pool.query(
-    `SELECT id, name, role, region FROM users WHERE is_active = TRUE`
-  );
-  const byName = {};
-  users.forEach(u => { byName[u.name] = u; });
-
-  const regions = brief.regions || [];
-  const hasUK = regions.includes('UK');
-  const hasGCC = regions.some(r => r.startsWith('GCC'));
-  const hasArabic = regions.includes('GCC-AR');
-  const hasGlobal = regions.includes('Global');
-  const hasAsia = regions.includes('Asia');
-
-  const approvers = {
-    stage_1: [],  // Marketing Exec
-    stage_2: [],  // Regional HoM(s) + Arabic QA
-    stage_3: [],  // Global HoM
-    stage_4: [],  // CEO if triggered
-  };
-
-  // Stage 1 — Joey (currently the only content_exec)
-  if (byName.Joey) approvers.stage_1.push(byName.Joey.id);
-
-  // Stage 2 — Regional HoM(s) based on the brief's regions
-  if (hasGCC && byName.Amber) approvers.stage_2.push(byName.Amber.id);
-  if (hasUK && byName.Beth) approvers.stage_2.push(byName.Beth.id);
-  // Arabic briefs also need Mohammed for QA — same stage
-  if (hasArabic && byName.Mohammed) approvers.stage_2.push(byName.Mohammed.id);
-
-  // If a brief is Global-only or Asia-only (no UK/GCC region), skip Stage 2
-  // and let Hannah handle it directly at Stage 3
-  const skipRegionalStage = approvers.stage_2.length === 0;
-
-  // Stage 3 — Hannah (Global HoM) — always the final regional gate
-  if (byName.Hannah) approvers.stage_3.push(byName.Hannah.id);
-
-  // Stage 4 — CEO if triggered
-  const ceoTriggers = ['Brand campaign', 'New market entry', 'Development launch'];
-  const needsCEO = brief.requires_ceo || ceoTriggers.includes(brief.campaign_type);
-  if (needsCEO && byName['Adam Price']) {
-    approvers.stage_4.push(byName['Adam Price'].id);
-  }
-
-  // If we skipped Stage 2, renumber Stage 3 → Stage 2, Stage 4 → Stage 3
-  if (skipRegionalStage) {
-    return {
-      stage_1: approvers.stage_1,
-      stage_2: approvers.stage_3,
-      stage_3: approvers.stage_4,
-      stage_4: [],
-    };
-  }
-  return approvers;
-}
 
 // ─────────────────────────────────────────────
 // POST /api/approvals/brief/:id/start-understanding
@@ -154,6 +94,11 @@ router.post('/brief/:id/confirm-understanding', async (req, res) => {
       return res.status(409).json({ error: 'Author has not sent an understanding summary yet' });
     }
 
+    const chain = brief.extra_data && brief.extra_data.approval_chain;
+    if (!chain || !Array.isArray(chain) || chain.length === 0) {
+      return res.status(409).json({ error: 'No approval chain has been set for this brief' });
+    }
+
     await client.query('BEGIN');
 
     await client.query(
@@ -161,23 +106,19 @@ router.post('/brief/:id/confirm-understanding', async (req, res) => {
       [id]
     );
 
-    const approvers = await determineApprovers(brief);
-    for (const stage of [1, 2, 3, 4]) {
-      const approverIds = approvers[`stage_${stage}`] || [];
-      for (const approverId of approverIds) {
-        await client.query(
-          `INSERT INTO approvals (brief_id, approver_id, stage, status)
-           VALUES ($1, $2, $3, 'pending')`,
-          [id, approverId, stage]
-        );
-      }
+    for (let i = 0; i < chain.length; i++) {
+      await client.query(
+        `INSERT INTO approvals (brief_id, approver_id, stage, status)
+         VALUES ($1, $2, $3, 'pending')`,
+        [id, chain[i], i + 1]
+      );
     }
 
     await logAction(client, id, req.user.id, 'understanding_confirmed',
-      `Understanding confirmed — approval chain started`);
+      `Understanding confirmed — approval chain started (${chain.length} stage${chain.length > 1 ? 's' : ''})`);
 
     await client.query('COMMIT');
-    res.json({ ok: true, message: 'Understanding confirmed — approval chain started', approvers });
+    res.json({ ok: true, message: 'Understanding confirmed — approval chain started' });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Confirm understanding error:', err);
