@@ -67,10 +67,12 @@ async function loadTeamOptions() {
         `<option value="${escapeAttr(u.id)}">${escapeHtml(u.name)}</option>`);
     });
 
-    // Owner dropdown uses real IDs
-    const ownerEl = document.getElementById('f-owner');
-    if (ownerEl) users.forEach(u => ownerEl.insertAdjacentHTML('beforeend',
-      `<option value="${escapeAttr(u.id)}">${escapeHtml(u.name)}</option>`));
+    // Show logged-in user as the fixed owner
+    const ownerDisplay = document.getElementById('f-owner-display');
+    if (ownerDisplay) {
+      const me = getCurrentUser();
+      if (me) ownerDisplay.textContent = me.name;
+    };
 
     // Informational dropdowns store names (displayed as-is in the data blob)
     ['d-dash-owner', 'd-compliance'].forEach(id => {
