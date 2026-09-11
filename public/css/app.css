@@ -258,6 +258,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .modal-body { padding: 18px 22px; }
 .modal-foot { padding: 12px 22px 18px; border-top: 0.5px solid var(--divider); display: flex; justify-content: flex-end; gap: 8px; }
 
+/* ── APPROVAL CHAIN BUILDER (new-brief) ── */
+.chain-add { display: flex; gap: 8px; margin-bottom: 12px; }
+.chain-add select { flex: 1; }
+.chain-list { display: flex; flex-direction: column; gap: 6px; }
+.chain-empty { font-size: 13px; color: var(--text-3); padding: 8px 0; }
+
 /* ── INBOX (pending approvals) ── */
 .inbox-empty { text-align: center; padding: 60px 20px; color: var(--text-3); font-size: 13.5px; }
 .inbox-empty strong { display: block; color: var(--text-2); font-size: 15px; font-weight: 500; margin-bottom: 4px; letter-spacing: -0.01em; }

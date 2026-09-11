@@ -266,6 +266,26 @@
           </div>
         </div>
 
+        <!-- ── Approval chain builder ── -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title">Approval chain <span style="font-size:11px;color:var(--tint-green-t);margin-left:6px;font-weight:400">Required</span></div>
+            <span class="card-chevron open">▼</span>
+          </div>
+          <div class="card-body open">
+            <p class="field-hint" style="margin-bottom:14px">Pick approvers in order. The brief moves through each stage sequentially after all prior stages are approved. The same person can appear more than once (loops supported).</p>
+            <div class="chain-add">
+              <select id="chain-select">
+                <option value="">Select a team member…</option>
+              </select>
+              <button type="button" class="btn btn-ghost" onclick="addApprover()">Add to chain</button>
+            </div>
+            <div id="chain-list" class="chain-list">
+              <div class="chain-empty">No approvers added yet — add at least one above.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── Submit bar ── -->
         <div class="submit-bar">
           <div>
