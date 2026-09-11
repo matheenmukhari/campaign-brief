@@ -14,9 +14,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Auth routes
+// API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/briefs', require('./routes/briefs'));
+app.use('/api/approvals', require('./routes/approvals'));
 
 // Health check endpoint — proves the server is alive
 app.get('/api/health', (req, res) => {
