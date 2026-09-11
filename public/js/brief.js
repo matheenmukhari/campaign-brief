@@ -228,11 +228,12 @@ function renderRevisionBanner() {
         ${latest.severity ? `<span class="tag" style="background:${severityColour};color:#fff;border:none;text-transform:capitalize">${latest.severity}</span>` : ''}
       </div>
       <div style="font-size:12.5px;color:var(--tint-red-t);margin-bottom:10px;opacity:0.85">
-        ${escapeHtml(latest.approver_name)} returned this brief at stage ${latest.stage}. Fix the issues below and re-submit.
+        ${escapeHtml(latest.approver_name)} returned this brief at stage ${latest.stage}. Address the feedback below, then re-submit.
       </div>
-      <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:14px;font-size:13px;line-height:1.55;color:var(--text-2)">
+      <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:14px;font-size:13px;line-height:1.55;color:var(--text-2);margin-bottom:14px">
         ${escapeHtml(latest.comments)}
       </div>
+      ${canUserEdit() ? `<button class="btn btn-primary btn-sm" onclick="toggleEdit()">Edit this brief</button>` : ''}
     </div>`;
 }
 
@@ -643,7 +644,7 @@ function renderEditMode() {
         <button class="btn btn-primary btn-sm" onclick="saveEdit()">Save changes</button>
       </div>
     </div>
-    <div class="edit-hint">Only editable while <strong>draft</strong> or <strong>understanding pending</strong>. Locks once approvals begin.</div>
+    <div class="edit-hint">${approvals.some(a => a.status === 'revisions_requested') ? 'Address the revision feedback, then save and re-submit.' : 'Only editable while draft or understanding pending. Locks once approvals begin.'}</div>
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-body open">
         <div class="fg fg-2">
