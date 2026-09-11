@@ -113,7 +113,7 @@ function addApprover() {
   const sel = document.getElementById('chain-select');
   const userId = sel.value;
   if (!userId) return;
-  const user = _teamUsers.find(u => u.id === userId);
+  const user = _teamUsers.find(u => String(u.id) === userId);
   if (!user) return;
   approvalChain.push({ id: user.id, name: user.name, initials: user.initials, role: user.role });
   sel.value = '';
