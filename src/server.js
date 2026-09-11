@@ -18,6 +18,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/briefs', require('./routes/briefs'));
 app.use('/api/approvals', require('./routes/approvals'));
+app.use('/api/users', require('./routes/users'));
 
 // Health check endpoint — proves the server is alive
 app.get('/api/health', (req, res) => {
