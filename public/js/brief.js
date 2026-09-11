@@ -318,28 +318,36 @@ function canEditChain() {
   if (['approved', 'archived'].includes(brief.status)) return false;
   const isOwnerOrRequester = brief.requester_id === currentUser.id || brief.owner_id === currentUser.id;
   if (isOwnerOrRequester) return true;
-  // Current stage approver can also edit future stages
-  const currentStage = parseInt((brief.status.match(/approval_stage_(\d+)/) || [])[1], 10);
-  if (currentStage > 0) {
-    return approvals.some(a => a.stage === currentStage && a.approver_id === currentUser.id && a.status === 'pending');
-  }
-  return false;
+  // Any pending approver in the chain can edit stages after their own slot
+  return approvals.some(a => a.approver_id === currentUser.id && a.status === 'pending');
+}
+
+// Returns the cutoff stage for the current user:
+// briefer → currentStage; approver → their own highest pending stage
+function myChainCutoff() {
+  const currentStage = parseInt((brief.status.match(/approval_stage_(\d+)/) || [])[1], 10) || 0;
+  const isOwnerOrRequester = brief.requester_id === currentUser.id || brief.owner_id === currentUser.id;
+  if (isOwnerOrRequester) return currentStage;
+  const myStages = approvals
+    .filter(a => a.approver_id === currentUser.id && a.status === 'pending')
+    .map(a => a.stage);
+  return myStages.length ? Math.max(...myStages) : currentStage;
 }
 
 // ─────────────────── CHAIN EDITOR MODAL ───────────────────
 function openChainEditor() {
-  const currentStage = parseInt((brief.status.match(/approval_stage_(\d+)/) || [])[1], 10) || 0;
+  const cutoff = myChainCutoff();
   const userMap = {};
   _chainUsers.forEach(u => { userMap[String(u.id)] = u; });
 
-  if (currentStage === 0) {
+  if (cutoff === 0) {
     // Draft / understanding_pending — full chain is editable
     const chain = (brief.extra_data || {}).approval_chain || [];
     _chainEditorChain = chain.map(uid => userMap[String(uid)]).filter(Boolean);
   } else {
-    // Only stages after the current active stage are editable
+    // Editable = pending stages after the caller's own highest stage
     _chainEditorChain = approvals
-      .filter(a => a.stage > currentStage && a.status === 'pending')
+      .filter(a => a.stage > cutoff && a.status === 'pending')
       .sort((a, b) => a.stage - b.stage)
       .map(a => userMap[String(a.approver_id)])
       .filter(Boolean);
@@ -350,6 +358,13 @@ function openChainEditor() {
   if (sel && sel.options.length <= 1) {
     _chainUsers.forEach(u => sel.insertAdjacentHTML('beforeend',
       `<option value="${escapeAttr(String(u.id))}">${escapeHtml(u.name)}</option>`));
+  }
+  const note = document.getElementById('ce-context-note');
+  if (note) {
+    const isOwnerOrRequester = brief.requester_id === currentUser.id || brief.owner_id === currentUser.id;
+    note.textContent = isOwnerOrRequester
+      ? 'Add or reorder approvers. Approved and in-progress stages cannot be changed.'
+      : `You can configure who comes after your own stage. Stages before yours are locked.`;
   }
   renderChainEditorList();
   modal.classList.add('open');
@@ -364,8 +379,8 @@ function createChainEditorModal() {
           <button class="modal-x" onclick="closeChainEditor()">×</button>
         </div>
         <div class="modal-body">
-          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px;line-height:1.55">
-            Add or reorder approvers. Approved and in-progress stages cannot be changed.
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px;line-height:1.55" id="ce-context-note">
+            Add or reorder approvers for the stages after your own.
           </p>
           <div class="chain-add">
             <select id="ce-chain-select"><option value="">Select a team member…</option></select>
@@ -390,7 +405,7 @@ function closeChainEditor() {
 function renderChainEditorList() {
   const list = document.getElementById('ce-chain-list');
   if (!list) return;
-  const currentStage = parseInt((brief.status.match(/approval_stage_(\d+)/) || [])[1], 10) || 0;
+  const cutoff = myChainCutoff();
   if (!_chainEditorChain.length) {
     list.innerHTML = '<div class="chain-empty">No approvers in the remaining chain.</div>';
     return;
@@ -401,7 +416,7 @@ function renderChainEditorList() {
         <div class="appr-av" style="background:var(--tint-blue);color:var(--tint-blue-t)">${escapeHtml(u.initials)}</div>
         <div>
           <div class="appr-name">${escapeHtml(u.name)}</div>
-          <div class="appr-role">Stage ${currentStage + 1 + i}</div>
+          <div class="appr-role">Stage ${cutoff + 1 + i}</div>
         </div>
       </div>
       <div class="appr-acts">

@@ -365,22 +365,27 @@ router.put('/brief/:id/chain', async (req, res) => {
     const approvalMatch = brief.status.match(/^approval_stage_(\d+)$/);
     const currentStage = approvalMatch ? parseInt(approvalMatch[1]) : 0;
 
-    let isCurrentApprover = false;
-    if (currentStage > 0 && !isOwnerOrRequester) {
-      const { rows } = await client.query(
-        `SELECT id FROM approvals WHERE brief_id = $1 AND stage = $2 AND approver_id = $3 AND status = 'pending'`,
-        [id, currentStage, req.user.id]
-      );
-      isCurrentApprover = rows.length > 0;
-    }
+    // cutoffStage = the stage whose pending records we preserve.
+    // Briefer / current-stage approver: cutoff = currentStage (edit everything after current).
+    // Future pending approver: cutoff = their highest pending stage (edit only after their own slot).
+    let cutoffStage = currentStage;
 
-    if (!isOwnerOrRequester && !isCurrentApprover) {
-      return res.status(403).json({ error: 'Only the brief owner/requester or current stage approver can edit the chain' });
+    if (!isOwnerOrRequester) {
+      const { rows: myRows } = await client.query(
+        `SELECT MAX(stage) AS max_stage FROM approvals
+         WHERE brief_id = $1 AND approver_id = $2 AND status = 'pending'`,
+        [id, req.user.id]
+      );
+      const myMaxStage = myRows[0] && myRows[0].max_stage ? parseInt(myRows[0].max_stage) : 0;
+      if (!myMaxStage) {
+        return res.status(403).json({ error: 'You are not in the approval chain for this brief' });
+      }
+      cutoffStage = myMaxStage;
     }
 
     await client.query('BEGIN');
 
-    if (currentStage === 0) {
+    if (cutoffStage === 0) {
       // Draft or understanding_pending — no approval rows exist yet, just update brief_data
       await client.query(
         `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2::jsonb)
@@ -389,15 +394,15 @@ router.put('/brief/:id/chain', async (req, res) => {
         [id, JSON.stringify({ approval_chain: approvers })]
       );
     } else {
-      // In approval — delete future pending stages, insert new ones
+      // Delete pending stages after the caller's cutoff, then insert new ones
       await client.query(
         `DELETE FROM approvals WHERE brief_id = $1 AND stage > $2 AND status = 'pending'`,
-        [id, currentStage]
+        [id, cutoffStage]
       );
       for (let i = 0; i < approvers.length; i++) {
         await client.query(
           `INSERT INTO approvals (brief_id, approver_id, stage, status) VALUES ($1, $2, $3, 'pending')`,
-          [id, approvers[i], currentStage + 1 + i]
+          [id, approvers[i], cutoffStage + 1 + i]
         );
       }
       // Rebuild approval_chain in brief_data from all approval rows (preserves history)
