@@ -76,6 +76,7 @@ function renderViewMode() {
     </div>
 
     ${renderPipeline()}
+    ${renderRevisionBanner()}
     ${renderUnderstandingBlock(extra)}
     ${renderApprovalChain()}
 
@@ -210,6 +211,31 @@ function renderUnderstandingBlock(extra) {
   return '';
 }
 
+// ─────────────────── REVISION BANNER ───────────────────
+function renderRevisionBanner() {
+  if (brief.status !== 'draft') return '';
+  const latest = [...approvals]
+    .filter(a => a.status === 'revisions_requested')
+    .sort((a, b) => new Date(b.decided_at) - new Date(a.decided_at))[0];
+  if (!latest) return '';
+
+  const severityColour = { minor: 'var(--amber)', moderate: 'var(--rose)', major: 'var(--rose)' }[latest.severity] || 'var(--rose)';
+
+  return `
+    <div style="background:var(--tint-red);border:0.5px solid #E8B8B0;border-radius:var(--r);padding:18px 20px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:14px;font-weight:500;color:var(--tint-red-t)">Revisions requested</span>
+        ${latest.severity ? `<span class="tag" style="background:${severityColour};color:#fff;border:none;text-transform:capitalize">${latest.severity}</span>` : ''}
+      </div>
+      <div style="font-size:12.5px;color:var(--tint-red-t);margin-bottom:10px;opacity:0.85">
+        ${escapeHtml(latest.approver_name)} returned this brief at stage ${latest.stage}. Fix the issues below and re-submit.
+      </div>
+      <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:14px;font-size:13px;line-height:1.55;color:var(--text-2)">
+        ${escapeHtml(latest.comments)}
+      </div>
+    </div>`;
+}
+
 // ─────────────────── APPROVAL CHAIN ───────────────────
 function renderApprovalChain() {
   const canEdit = canEditChain();
@@ -220,9 +246,38 @@ function renderApprovalChain() {
   // Draft / understanding_pending — show the planned chain from brief_data
   if (['draft', 'understanding_pending'].includes(brief.status)) {
     const chain = (brief.extra_data || {}).approval_chain || [];
-    if (!chain.length && !canEdit) return '';
     const userMap = {};
     _chainUsers.forEach(u => { userMap[String(u.id)] = u; });
+
+    // Prior round history (from a previous approval attempt that was sent back)
+    const priorApprovals = approvals.filter(a => a.status !== 'pending');
+    const priorHtml = priorApprovals.length ? `
+      <div style="margin-bottom:16px">
+        <div class="stage-label" style="margin-top:0">Previous round</div>
+        ${priorApprovals.map(a => {
+          const tag = a.status === 'approved'
+            ? `<span class="tag tag-green">Approved</span>`
+            : `<span class="tag tag-red">Revisions requested</span>`;
+          const comment = a.comments
+            ? `<div class="appr-comment ${a.status === 'approved' ? 'approved' : 'revisions'}" style="margin-top:8px">
+                ${a.status === 'revisions_requested' && a.severity ? `<strong style="text-transform:capitalize">${a.severity}:</strong> ` : ''}${escapeHtml(a.comments)}
+               </div>` : '';
+          return `<div class="appr-card"><div style="width:100%">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div class="appr-info">
+                <div class="appr-av" style="background:var(--surface-alt);color:var(--text-2)">${escapeHtml(a.approver_initials)}</div>
+                <div>
+                  <div class="appr-name">${escapeHtml(a.approver_name)}</div>
+                  <div class="appr-role">Stage ${a.stage}</div>
+                </div>
+              </div>
+              <div class="appr-acts">${tag}</div>
+            </div>
+            ${comment}
+          </div></div>`;
+        }).join('')}
+      </div>` : '';
+
     const cards = chain.map((uid, i) => {
       const u = userMap[String(uid)];
       if (!u) return '';
@@ -237,7 +292,10 @@ function renderApprovalChain() {
         <div class="appr-acts"><span class="tag tag-gray">Planned</span></div>
       </div>`;
     }).filter(Boolean).join('');
+
+    if (!chain.length && !canEdit && !priorApprovals.length) return '';
     return `<div style="margin-bottom:20px">
+      ${priorHtml}
       <div class="stage-label">Approval chain ${editBtn}</div>
       ${cards || '<div style="font-size:13px;color:var(--text-3);padding:8px 0">No chain set yet.</div>'}
     </div>`;
