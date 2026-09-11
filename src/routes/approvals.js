@@ -333,4 +333,98 @@ router.post('/:approvalId/request-revisions', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────
+// PUT /api/approvals/brief/:id/chain
+// Update the approval chain. Briefer or current-stage approver only.
+// For draft/understanding_pending: replaces the stored chain in brief_data.
+// For approval_stage_N: deletes future pending stages, inserts new ones.
+// ─────────────────────────────────────────────
+router.put('/brief/:id/chain', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const { approvers } = req.body;
+
+    if (!approvers || !Array.isArray(approvers) || approvers.length === 0) {
+      return res.status(400).json({ error: 'At least one approver is required' });
+    }
+
+    const { rows: [brief] } = await client.query(
+      `SELECT b.*, bd.data AS extra_data FROM briefs b
+       LEFT JOIN brief_data bd ON bd.brief_id = b.id
+       WHERE b.id = $1`,
+      [id]
+    );
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+
+    if (['approved', 'archived'].includes(brief.status)) {
+      return res.status(409).json({ error: 'Cannot edit chain — brief is already approved or archived' });
+    }
+
+    const isOwnerOrRequester = brief.requester_id === req.user.id || brief.owner_id === req.user.id;
+    const approvalMatch = brief.status.match(/^approval_stage_(\d+)$/);
+    const currentStage = approvalMatch ? parseInt(approvalMatch[1]) : 0;
+
+    let isCurrentApprover = false;
+    if (currentStage > 0 && !isOwnerOrRequester) {
+      const { rows } = await client.query(
+        `SELECT id FROM approvals WHERE brief_id = $1 AND stage = $2 AND approver_id = $3 AND status = 'pending'`,
+        [id, currentStage, req.user.id]
+      );
+      isCurrentApprover = rows.length > 0;
+    }
+
+    if (!isOwnerOrRequester && !isCurrentApprover) {
+      return res.status(403).json({ error: 'Only the brief owner/requester or current stage approver can edit the chain' });
+    }
+
+    await client.query('BEGIN');
+
+    if (currentStage === 0) {
+      // Draft or understanding_pending — no approval rows exist yet, just update brief_data
+      await client.query(
+        `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2::jsonb)
+         ON CONFLICT (brief_id) DO UPDATE
+         SET data = brief_data.data || $2::jsonb, updated_at = NOW()`,
+        [id, JSON.stringify({ approval_chain: approvers })]
+      );
+    } else {
+      // In approval — delete future pending stages, insert new ones
+      await client.query(
+        `DELETE FROM approvals WHERE brief_id = $1 AND stage > $2 AND status = 'pending'`,
+        [id, currentStage]
+      );
+      for (let i = 0; i < approvers.length; i++) {
+        await client.query(
+          `INSERT INTO approvals (brief_id, approver_id, stage, status) VALUES ($1, $2, $3, 'pending')`,
+          [id, approvers[i], currentStage + 1 + i]
+        );
+      }
+      // Rebuild approval_chain in brief_data from all approval rows (preserves history)
+      const { rows: allApprovals } = await client.query(
+        `SELECT DISTINCT ON (stage) approver_id FROM approvals WHERE brief_id = $1 ORDER BY stage, id`,
+        [id]
+      );
+      await client.query(
+        `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2::jsonb)
+         ON CONFLICT (brief_id) DO UPDATE
+         SET data = brief_data.data || $2::jsonb, updated_at = NOW()`,
+        [id, JSON.stringify({ approval_chain: allApprovals.map(a => a.approver_id) })]
+      );
+    }
+
+    await logAction(client, id, req.user.id, 'chain_updated',
+      `Approval chain updated by ${req.user.name}`);
+
+    await client.query('COMMIT');
+    res.json({ ok: true, message: 'Approval chain updated' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Update chain error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

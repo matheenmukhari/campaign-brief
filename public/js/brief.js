@@ -6,6 +6,8 @@ let brief = null;
 let approvals = [];
 let currentUser = null;
 let isEditMode = false;
+let _chainUsers = [];
+let _chainEditorChain = [];
 
 (async function () {
   if (!initShell('dashboard')) return;
@@ -24,12 +26,14 @@ let isEditMode = false;
 
 async function loadBrief(id) {
   try {
-    const [briefRes, apprRes] = await Promise.all([
+    const [briefRes, apprRes, usersRes] = await Promise.all([
       apiCall('GET', `/api/briefs/${id}`),
       apiCall('GET', `/api/approvals/brief/${id}`),
+      apiCall('GET', '/api/users').catch(() => ({ users: [] })),
     ]);
     brief = briefRes.brief;
     approvals = apprRes.approvals || [];
+    _chainUsers = usersRes.users || [];
     setTopbar('Dashboard', brief.name);
     render();
   } catch (err) {
@@ -120,23 +124,22 @@ function renderViewMode() {
 
 // ─────────────────── PIPELINE VISUAL ───────────────────
 function renderPipeline() {
-  const stages = [
-    { key: 'draft', label: 'Draft' },
-    { key: 'understanding_pending', label: 'Understanding' },
-    { key: 'approval_stage_1', label: 'Marketing exec' },
-    { key: 'approval_stage_2', label: 'Regional HoM' },
-    { key: 'approval_stage_3', label: 'Global HoM' },
-    { key: 'approval_stage_4', label: 'CEO' },
-    { key: 'approved', label: 'Approved' },
-  ];
-
-    // Only show stages that have approvers assigned
-  const activeStages = new Set(approvals.map(a => `approval_stage_${a.stage}`));
-  const displayStages = stages.filter(s => {
-    if (s.key.startsWith('approval_stage_')) return activeStages.has(s.key);
-    return true;
+  // Build approval stage labels dynamically from whoever is assigned
+  const stageNames = {};
+  approvals.forEach(a => {
+    if (!stageNames[a.stage]) stageNames[a.stage] = [];
+    stageNames[a.stage].push(a.approver_name.split(' ')[0]);
   });
 
+  const fixedStart = [
+    { key: 'draft', label: 'Draft' },
+    { key: 'understanding_pending', label: 'Understanding' },
+  ];
+  const approvalStages = [...new Set(approvals.map(a => a.stage))].sort((a, b) => a - b)
+    .map(n => ({ key: `approval_stage_${n}`, label: stageNames[n].join(' + ') }));
+  const fixedEnd = [{ key: 'approved', label: 'Approved' }];
+
+  const displayStages = [...fixedStart, ...approvalStages, ...fixedEnd];
   const stageOrder = displayStages.map(s => s.key);
   const currentIdx = stageOrder.indexOf(brief.status);
 
@@ -145,14 +148,11 @@ function renderPipeline() {
     if (currentIdx > i) cls = 'done';
     else if (currentIdx === i) cls = 'active';
     if (brief.status === 'approved' && s.key === 'approved') cls = 'done';
-
-    const num = i + 1;
-    const dot = cls === 'done' ? '✓' : num;
-    return `
-      <div class="pipe-step ${cls}">
-        <div class="pipe-dot">${dot}</div>
-        <div class="pipe-label">${s.label}</div>
-      </div>`;
+    const dot = cls === 'done' ? '✓' : i + 1;
+    return `<div class="pipe-step ${cls}">
+      <div class="pipe-dot">${dot}</div>
+      <div class="pipe-label">${s.label}</div>
+    </div>`;
   }).join('');
 
   return `<div class="pipeline">${html}</div>`;
@@ -212,10 +212,40 @@ function renderUnderstandingBlock(extra) {
 
 // ─────────────────── APPROVAL CHAIN ───────────────────
 function renderApprovalChain() {
-  if (!approvals.length) return '';
-  if (['draft', 'understanding_pending'].includes(brief.status)) return '';
+  const canEdit = canEditChain();
+  const editBtn = canEdit
+    ? `<button class="btn btn-ghost btn-xs" style="margin-left:8px" onclick="openChainEditor()">Edit chain</button>`
+    : '';
 
-  // Group by stage
+  // Draft / understanding_pending — show the planned chain from brief_data
+  if (['draft', 'understanding_pending'].includes(brief.status)) {
+    const chain = (brief.extra_data || {}).approval_chain || [];
+    if (!chain.length && !canEdit) return '';
+    const userMap = {};
+    _chainUsers.forEach(u => { userMap[String(u.id)] = u; });
+    const cards = chain.map((uid, i) => {
+      const u = userMap[String(uid)];
+      if (!u) return '';
+      return `<div class="appr-card">
+        <div class="appr-info">
+          <div class="appr-av" style="background:var(--tint-blue);color:var(--tint-blue-t)">${escapeHtml(u.initials)}</div>
+          <div>
+            <div class="appr-name">${escapeHtml(u.name)}</div>
+            <div class="appr-role">Stage ${i + 1}</div>
+          </div>
+        </div>
+        <div class="appr-acts"><span class="tag tag-gray">Planned</span></div>
+      </div>`;
+    }).filter(Boolean).join('');
+    return `<div style="margin-bottom:20px">
+      <div class="stage-label">Approval chain ${editBtn}</div>
+      ${cards || '<div style="font-size:13px;color:var(--text-3);padding:8px 0">No chain set yet.</div>'}
+    </div>`;
+  }
+
+  // In approval — show actual approval records grouped by stage
+  if (!approvals.length) return '';
+
   const stages = {};
   approvals.forEach(a => {
     if (!stages[a.stage]) stages[a.stage] = [];
@@ -227,14 +257,18 @@ function renderApprovalChain() {
 
   const stageBlocks = Object.entries(stages).map(([stage, apprs]) => {
     const stageNum = parseInt(stage, 10);
-    return `
-      <div class="stage-block">
-        <div class="stage-label">Stage ${stageNum} · ${stageLabelFor(stageNum)}</div>
-        ${apprs.map(a => renderApprovalCard(a, stageNum, currentStageNum, isApproved)).join('')}
-      </div>`;
+    return `<div class="stage-block">
+      <div class="stage-label">Stage ${stageNum}</div>
+      ${apprs.map(a => renderApprovalCard(a, stageNum, currentStageNum, isApproved)).join('')}
+    </div>`;
   }).join('');
 
-  return `<div style="margin-bottom: 20px;">${stageBlocks}</div>`;
+  const chainHeader = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <span style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0.02em;text-transform:uppercase">Approval chain</span>
+    ${!isApproved ? editBtn : ''}
+  </div>`;
+
+  return `<div style="margin-bottom:20px">${chainHeader}${stageBlocks}</div>`;
 }
 
 function renderApprovalCard(a, stageNum, currentStageNum, isApproved) {
@@ -279,12 +313,140 @@ function renderApprovalCard(a, stageNum, currentStageNum, isApproved) {
     </div>`;
 }
 
-function stageLabelFor(n) {
-  if (n === 1) return 'Marketing executive';
-  if (n === 2) return 'Regional head of marketing';
-  if (n === 3) return 'Global head of marketing';
-  if (n === 4) return 'CEO';
-  return `Stage ${n}`;
+function canEditChain() {
+  if (!currentUser || !brief) return false;
+  if (['approved', 'archived'].includes(brief.status)) return false;
+  const isOwnerOrRequester = brief.requester_id === currentUser.id || brief.owner_id === currentUser.id;
+  if (isOwnerOrRequester) return true;
+  // Current stage approver can also edit future stages
+  const currentStage = parseInt((brief.status.match(/approval_stage_(\d+)/) || [])[1], 10);
+  if (currentStage > 0) {
+    return approvals.some(a => a.stage === currentStage && a.approver_id === currentUser.id && a.status === 'pending');
+  }
+  return false;
+}
+
+// ─────────────────── CHAIN EDITOR MODAL ───────────────────
+function openChainEditor() {
+  const currentStage = parseInt((brief.status.match(/approval_stage_(\d+)/) || [])[1], 10) || 0;
+  const userMap = {};
+  _chainUsers.forEach(u => { userMap[String(u.id)] = u; });
+
+  if (currentStage === 0) {
+    // Draft / understanding_pending — full chain is editable
+    const chain = (brief.extra_data || {}).approval_chain || [];
+    _chainEditorChain = chain.map(uid => userMap[String(uid)]).filter(Boolean);
+  } else {
+    // Only stages after the current active stage are editable
+    _chainEditorChain = approvals
+      .filter(a => a.stage > currentStage && a.status === 'pending')
+      .sort((a, b) => a.stage - b.stage)
+      .map(a => userMap[String(a.approver_id)])
+      .filter(Boolean);
+  }
+
+  const modal = document.getElementById('chain-editor-modal') || createChainEditorModal();
+  const sel = document.getElementById('ce-chain-select');
+  if (sel && sel.options.length <= 1) {
+    _chainUsers.forEach(u => sel.insertAdjacentHTML('beforeend',
+      `<option value="${escapeAttr(String(u.id))}">${escapeHtml(u.name)}</option>`));
+  }
+  renderChainEditorList();
+  modal.classList.add('open');
+}
+
+function createChainEditorModal() {
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="overlay" id="chain-editor-modal">
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-ttl">Edit approval chain</div>
+          <button class="modal-x" onclick="closeChainEditor()">×</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px;line-height:1.55">
+            Add or reorder approvers. Approved and in-progress stages cannot be changed.
+          </p>
+          <div class="chain-add">
+            <select id="ce-chain-select"><option value="">Select a team member…</option></select>
+            <button type="button" class="btn btn-ghost" onclick="addToEditorChain()">Add</button>
+          </div>
+          <div id="ce-chain-list" class="chain-list"></div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeChainEditor()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="saveChain()">Save chain</button>
+        </div>
+      </div>
+    </div>`);
+  return document.getElementById('chain-editor-modal');
+}
+
+function closeChainEditor() {
+  const modal = document.getElementById('chain-editor-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function renderChainEditorList() {
+  const list = document.getElementById('ce-chain-list');
+  if (!list) return;
+  const currentStage = parseInt((brief.status.match(/approval_stage_(\d+)/) || [])[1], 10) || 0;
+  if (!_chainEditorChain.length) {
+    list.innerHTML = '<div class="chain-empty">No approvers in the remaining chain.</div>';
+    return;
+  }
+  list.innerHTML = _chainEditorChain.map((u, i) => `
+    <div class="appr-card">
+      <div class="appr-info">
+        <div class="appr-av" style="background:var(--tint-blue);color:var(--tint-blue-t)">${escapeHtml(u.initials)}</div>
+        <div>
+          <div class="appr-name">${escapeHtml(u.name)}</div>
+          <div class="appr-role">Stage ${currentStage + 1 + i}</div>
+        </div>
+      </div>
+      <div class="appr-acts">
+        ${i > 0 ? `<button type="button" class="btn btn-ghost btn-xs" onclick="moveInEditorChain(${i},-1)">↑</button>` : ''}
+        ${i < _chainEditorChain.length - 1 ? `<button type="button" class="btn btn-ghost btn-xs" onclick="moveInEditorChain(${i},1)">↓</button>` : ''}
+        <button type="button" class="btn btn-ghost btn-xs" style="color:var(--rose)" onclick="removeFromEditorChain(${i})">Remove</button>
+      </div>
+    </div>`).join('');
+}
+
+function addToEditorChain() {
+  const sel = document.getElementById('ce-chain-select');
+  const userId = sel.value;
+  if (!userId) return;
+  const user = _chainUsers.find(u => String(u.id) === userId);
+  if (!user) return;
+  _chainEditorChain.push({ id: user.id, name: user.name, initials: user.initials, role: user.role });
+  sel.value = '';
+  renderChainEditorList();
+}
+
+function removeFromEditorChain(i) {
+  _chainEditorChain.splice(i, 1);
+  renderChainEditorList();
+}
+
+function moveInEditorChain(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= _chainEditorChain.length) return;
+  [_chainEditorChain[i], _chainEditorChain[j]] = [_chainEditorChain[j], _chainEditorChain[i]];
+  renderChainEditorList();
+}
+
+async function saveChain() {
+  if (!_chainEditorChain.length) { toast('Add at least one approver'); return; }
+  try {
+    await apiCall('PUT', `/api/approvals/brief/${brief.id}/chain`, {
+      approvers: _chainEditorChain.map(u => u.id),
+    });
+    toast('Chain saved');
+    closeChainEditor();
+    await loadBrief(brief.id);
+  } catch (err) {
+    toast(err.message || 'Could not save chain');
+  }
 }
 
 // ─────────────────── ACTIONS ───────────────────
@@ -503,7 +665,7 @@ function row(key, val) {
   return `<div class="detail-row"><div class="detail-key">${key}</div><div class="${cls}">${display}</div></div>`;
 }
 function renderExtraData(extra) {
-  const entries = Object.entries(extra).filter(([k, v]) => v && k !== 'understanding_summary');
+  const entries = Object.entries(extra).filter(([k, v]) => v && k !== 'understanding_summary' && k !== 'approval_chain');
   if (!entries.length) return '';
   return `<div class="card" style="margin-bottom: 14px;">
     <div class="card-head" style="cursor: default;"><div class="card-title">Additional details</div></div>
