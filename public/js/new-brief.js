@@ -64,7 +64,7 @@ async function loadTeamOptions() {
     const chainSel = document.getElementById('chain-select');
     users.forEach(u => {
       chainSel.insertAdjacentHTML('beforeend',
-        `<option value="${escapeAttr(u.id)}">${escapeHtml(u.name)} — ${escapeHtml(u.role)}</option>`);
+        `<option value="${escapeAttr(u.id)}">${escapeHtml(u.name)}</option>`);
     });
 
     // Owner dropdown uses real IDs
@@ -97,7 +97,7 @@ function renderChain() {
         <div class="appr-av" style="background:var(--tint-blue);color:var(--tint-blue-t)">${escapeHtml(u.initials)}</div>
         <div>
           <div class="appr-name">${escapeHtml(u.name)}</div>
-          <div class="appr-role">Stage ${i + 1} · ${escapeHtml(u.role)}</div>
+          <div class="appr-role">Stage ${i + 1}</div>
         </div>
       </div>
       <div class="appr-acts">
