@@ -13,11 +13,18 @@ router.use(authRequired);
 // ── Helper: generate a unique brief code like SP-CB-2026-042 ──
 async function generateBriefCode(client) {
   const year = new Date().getFullYear();
+  // Find the highest existing sequence number for this year, then add 1
+  // This avoids collisions when briefs have been deleted
   const { rows } = await client.query(
-    `SELECT COUNT(*)::int AS count FROM briefs WHERE brief_code LIKE $1`,
+    `SELECT COALESCE(
+       MAX(CAST(SUBSTRING(brief_code FROM '\\d+$') AS INT)),
+       0
+     ) AS max_num
+     FROM briefs
+     WHERE brief_code LIKE $1`,
     [`SP-CB-${year}-%`]
   );
-  const nextNum = String(rows[0].count + 1).padStart(3, '0');
+  const nextNum = String(rows[0].max_num + 1).padStart(3, '0');
   return `SP-CB-${year}-${nextNum}`;
 }
 

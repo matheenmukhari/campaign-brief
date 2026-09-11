@@ -1,7 +1,7 @@
 // ============================================================
 // Approval routes
 // - Understanding confirmation flow
-// - Approval chain (Stage 1 → 2 → 3)
+// - Approval chain (Stage 1 → 2 → 3 → 4)
 // - Approve / Request revisions
 // ============================================================
 const express = require('express');
@@ -11,7 +11,6 @@ const authRequired = require('../middleware/authRequired');
 const router = express.Router();
 router.use(authRequired);
 
-// ── Helper: log an action ──
 async function logAction(client, briefId, actorId, action, detail = null) {
   await client.query(
     `INSERT INTO audit_log (brief_id, actor_id, action, detail) VALUES ($1, $2, $3, $4)`,
@@ -19,13 +18,15 @@ async function logAction(client, briefId, actorId, action, detail = null) {
   );
 }
 
-// ── Helper: figure out who approves this brief ──
+// ── Determine who approves this brief ──
+// Stage 1: Joey (Marketing Executive)
+// Stage 2: Regional HoM(s) — Amber for GCC, Beth for UK. Mohammed also at Stage 2 for Arabic.
+// Stage 3: Hannah (Global HoM) — final regional gate
+// Stage 4: CEO (only if triggered)
 async function determineApprovers(brief) {
-  // Get user IDs by role from the database
   const { rows: users } = await pool.query(
     `SELECT id, name, role, region FROM users WHERE is_active = TRUE`
   );
-
   const byName = {};
   users.forEach(u => { byName[u.name] = u; });
 
@@ -33,36 +34,53 @@ async function determineApprovers(brief) {
   const hasUK = regions.includes('UK');
   const hasGCC = regions.some(r => r.startsWith('GCC'));
   const hasArabic = regions.includes('GCC-AR');
+  const hasGlobal = regions.includes('Global');
+  const hasAsia = regions.includes('Asia');
 
   const approvers = {
     stage_1: [],  // Marketing Exec
-    stage_2: [],  // Head of Marketing
-    stage_3: [],  // CEO (only if triggered)
+    stage_2: [],  // Regional HoM(s) + Arabic QA
+    stage_3: [],  // Global HoM
+    stage_4: [],  // CEO if triggered
   };
 
-  // Stage 1 — Joey (Marketing Exec, currently the only content_exec)
+  // Stage 1 — Joey (currently the only content_exec)
   if (byName.Joey) approvers.stage_1.push(byName.Joey.id);
 
-  // Stage 2 — Global HoM + regional HoM(s)
-  if (byName.Hannah) approvers.stage_2.push(byName.Hannah.id);
+  // Stage 2 — Regional HoM(s) based on the brief's regions
   if (hasGCC && byName.Amber) approvers.stage_2.push(byName.Amber.id);
   if (hasUK && byName.Beth) approvers.stage_2.push(byName.Beth.id);
-  // Arabic briefs also need Mohammed for QA
+  // Arabic briefs also need Mohammed for QA — same stage
   if (hasArabic && byName.Mohammed) approvers.stage_2.push(byName.Mohammed.id);
 
-  // Stage 3 — CEO if triggered
+  // If a brief is Global-only or Asia-only (no UK/GCC region), skip Stage 2
+  // and let Hannah handle it directly at Stage 3
+  const skipRegionalStage = approvers.stage_2.length === 0;
+
+  // Stage 3 — Hannah (Global HoM) — always the final regional gate
+  if (byName.Hannah) approvers.stage_3.push(byName.Hannah.id);
+
+  // Stage 4 — CEO if triggered
   const ceoTriggers = ['Brand campaign', 'New market entry', 'Development launch'];
   const needsCEO = brief.requires_ceo || ceoTriggers.includes(brief.campaign_type);
   if (needsCEO && byName['Adam Price']) {
-    approvers.stage_3.push(byName['Adam Price'].id);
+    approvers.stage_4.push(byName['Adam Price'].id);
   }
 
+  // If we skipped Stage 2, renumber Stage 3 → Stage 2, Stage 4 → Stage 3
+  if (skipRegionalStage) {
+    return {
+      stage_1: approvers.stage_1,
+      stage_2: approvers.stage_3,
+      stage_3: approvers.stage_4,
+      stage_4: [],
+    };
+  }
   return approvers;
 }
 
 // ─────────────────────────────────────────────
 // POST /api/approvals/brief/:id/start-understanding
-// Author sends interpretation summary to requester
 // ─────────────────────────────────────────────
 router.post('/brief/:id/start-understanding', async (req, res) => {
   const client = await pool.connect();
@@ -80,20 +98,15 @@ router.post('/brief/:id/start-understanding', async (req, res) => {
     );
     if (!brief) return res.status(404).json({ error: 'Brief not found' });
 
-    // Only the owner (author) sends understanding
     if (brief.owner_id !== req.user.id) {
       return res.status(403).json({ error: 'Only the brief owner can send understanding confirmation' });
     }
-
     if (brief.status !== 'understanding_pending') {
-      return res.status(409).json({
-        error: `Cannot send understanding — brief status is ${brief.status}`,
-      });
+      return res.status(409).json({ error: `Cannot send understanding — brief status is ${brief.status}` });
     }
 
     await client.query('BEGIN');
 
-    // Save the summary in brief_data
     await client.query(
       `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2::jsonb)
        ON CONFLICT (brief_id) DO UPDATE
@@ -117,7 +130,6 @@ router.post('/brief/:id/start-understanding', async (req, res) => {
 
 // ─────────────────────────────────────────────
 // POST /api/approvals/brief/:id/confirm-understanding
-// Requester confirms the author's interpretation → kicks off Stage 1
 // ─────────────────────────────────────────────
 router.post('/brief/:id/confirm-understanding', async (req, res) => {
   const client = await pool.connect();
@@ -132,36 +144,26 @@ router.post('/brief/:id/confirm-understanding', async (req, res) => {
     );
     if (!brief) return res.status(404).json({ error: 'Brief not found' });
 
-    // Only the requester confirms
     if (brief.requester_id !== req.user.id) {
       return res.status(403).json({ error: 'Only the requester can confirm understanding' });
     }
-
     if (brief.status !== 'understanding_pending') {
-      return res.status(409).json({
-        error: `Cannot confirm — brief status is ${brief.status}`,
-      });
+      return res.status(409).json({ error: `Cannot confirm — brief status is ${brief.status}` });
     }
-
-    // Ensure the author has actually sent an understanding summary
     if (!brief.extra_data || !brief.extra_data.understanding_summary) {
-      return res.status(409).json({
-        error: 'Author has not sent an understanding summary yet',
-      });
+      return res.status(409).json({ error: 'Author has not sent an understanding summary yet' });
     }
 
     await client.query('BEGIN');
 
-    // Move to Stage 1
     await client.query(
       `UPDATE briefs SET status = 'approval_stage_1' WHERE id = $1`,
       [id]
     );
 
-    // Auto-generate approval rows
     const approvers = await determineApprovers(brief);
-    for (const stage of [1, 2, 3]) {
-      const approverIds = approvers[`stage_${stage}`];
+    for (const stage of [1, 2, 3, 4]) {
+      const approverIds = approvers[`stage_${stage}`] || [];
       for (const approverId of approverIds) {
         await client.query(
           `INSERT INTO approvals (brief_id, approver_id, stage, status)
@@ -175,11 +177,7 @@ router.post('/brief/:id/confirm-understanding', async (req, res) => {
       `Understanding confirmed — approval chain started`);
 
     await client.query('COMMIT');
-    res.json({
-      ok: true,
-      message: 'Understanding confirmed — approval chain started',
-      approvers,
-    });
+    res.json({ ok: true, message: 'Understanding confirmed — approval chain started', approvers });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Confirm understanding error:', err);
@@ -191,12 +189,10 @@ router.post('/brief/:id/confirm-understanding', async (req, res) => {
 
 // ─────────────────────────────────────────────
 // GET /api/approvals/brief/:id
-// Get the approval chain for a brief
 // ─────────────────────────────────────────────
 router.get('/brief/:id', async (req, res) => {
   try {
     const { id } = req.params;
-
     const { rows } = await pool.query(
       `SELECT
          a.id, a.stage, a.status, a.comments, a.severity, a.decided_at,
@@ -207,7 +203,6 @@ router.get('/brief/:id', async (req, res) => {
        ORDER BY a.stage ASC, a.id ASC`,
       [id]
     );
-
     res.json({ approvals: rows });
   } catch (err) {
     console.error('Get approvals error:', err);
@@ -217,7 +212,6 @@ router.get('/brief/:id', async (req, res) => {
 
 // ─────────────────────────────────────────────
 // GET /api/approvals/pending
-// Return approvals waiting on the logged-in user
 // ─────────────────────────────────────────────
 router.get('/pending', async (req, res) => {
   try {
@@ -232,10 +226,10 @@ router.get('/pending', async (req, res) => {
        WHERE a.approver_id = $1
          AND a.status = 'pending'
          AND b.status LIKE 'approval_stage_%'
+         AND b.status = CONCAT('approval_stage_', a.stage)
        ORDER BY b.go_live_date NULLS LAST, a.created_at`,
       [req.user.id]
     );
-
     res.json({ pending: rows });
   } catch (err) {
     console.error('Get pending error:', err);
@@ -245,7 +239,6 @@ router.get('/pending', async (req, res) => {
 
 // ─────────────────────────────────────────────
 // POST /api/approvals/:approvalId/approve
-// Approver approves. Advances brief if all approvers at that stage are done.
 // ─────────────────────────────────────────────
 router.post('/:approvalId/approve', async (req, res) => {
   const client = await pool.connect();
@@ -269,7 +262,6 @@ router.post('/:approvalId/approve', async (req, res) => {
       return res.status(409).json({ error: `Already ${approval.status}` });
     }
 
-    // Confirm brief is at the right stage
     const expectedStatus = `approval_stage_${approval.stage}`;
     if (approval.brief_status !== expectedStatus) {
       return res.status(409).json({
@@ -279,10 +271,8 @@ router.post('/:approvalId/approve', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Record this approval
     await client.query(
-      `UPDATE approvals SET status = 'approved', comments = $1, decided_at = NOW()
-       WHERE id = $2`,
+      `UPDATE approvals SET status = 'approved', comments = $1, decided_at = NOW() WHERE id = $2`,
       [comments || null, approvalId]
     );
 
@@ -301,7 +291,6 @@ router.post('/:approvalId/approve', async (req, res) => {
     );
 
     if (stageStatus.pending === 0 && stageStatus.approved === stageStatus.total) {
-      // Stage complete → find next stage or finish
       const { rows: nextStages } = await client.query(
         `SELECT DISTINCT stage FROM approvals
          WHERE brief_id = $1 AND stage > $2
@@ -318,7 +307,6 @@ router.post('/:approvalId/approve', async (req, res) => {
         await logAction(client, approval.brief_id, req.user.id, 'stage_advanced',
           `Advanced to Stage ${nextStage}`);
       } else {
-        // No more stages → fully approved
         await client.query(
           `UPDATE briefs SET status = 'approved' WHERE id = $1`,
           [approval.brief_id]
@@ -341,7 +329,6 @@ router.post('/:approvalId/approve', async (req, res) => {
 
 // ─────────────────────────────────────────────
 // POST /api/approvals/:approvalId/request-revisions
-// Approver requests revisions → brief goes back to draft
 // ─────────────────────────────────────────────
 router.post('/:approvalId/request-revisions', async (req, res) => {
   const client = await pool.connect();
@@ -374,7 +361,6 @@ router.post('/:approvalId/request-revisions', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Mark this approval as revisions requested
     await client.query(
       `UPDATE approvals SET status = 'revisions_requested',
          comments = $1, severity = $2, decided_at = NOW()
@@ -382,13 +368,11 @@ router.post('/:approvalId/request-revisions', async (req, res) => {
       [comments.trim(), severity, approvalId]
     );
 
-    // Clear all remaining pending approvals for this brief (they'll be recreated on re-submission)
     await client.query(
       `DELETE FROM approvals WHERE brief_id = $1 AND status = 'pending'`,
       [approval.brief_id]
     );
 
-    // Kick brief back to draft
     await client.query(
       `UPDATE briefs SET status = 'draft' WHERE id = $1`,
       [approval.brief_id]
