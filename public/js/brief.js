@@ -161,6 +161,8 @@ function renderPipeline() {
 
 // ─────────────────── UNDERSTANDING BLOCK ───────────────────
 function renderUnderstandingBlock(extra) {
+  // Re-submitted briefs skip the understanding step — don't show the block
+  if (extra.resubmitted) return '';
   const status = brief.status;
   const summary = extra.understanding_summary;
   const isOwner = brief.owner_id === currentUser.id;
@@ -742,7 +744,7 @@ function row(key, val) {
   return `<div class="detail-row"><div class="detail-key">${key}</div><div class="${cls}">${display}</div></div>`;
 }
 function renderExtraData(extra) {
-  const entries = Object.entries(extra).filter(([k, v]) => v && k !== 'understanding_summary' && k !== 'approval_chain');
+  const entries = Object.entries(extra).filter(([k, v]) => v && !['understanding_summary', 'approval_chain', 'resubmitted'].includes(k));
   if (!entries.length) return '';
   return `<div class="card" style="margin-bottom: 14px;">
     <div class="card-head" style="cursor: default;"><div class="card-title">Additional details</div></div>

@@ -296,8 +296,56 @@ router.post('/:id/submit', async (req, res) => {
       return res.status(409).json({ error: `Cannot submit — brief is ${existing.rows[0].status}` });
     }
 
+    // Detect re-submission: prior approval records exist from a previous round
+    const { rows: priorApprovals } = await client.query(
+      `SELECT id FROM approvals WHERE brief_id = $1 LIMIT 1`,
+      [id]
+    );
+    const isResubmission = priorApprovals.length > 0;
+
     await client.query('BEGIN');
 
+    if (isResubmission) {
+      // Load stored chain
+      const { rows: [bd] } = await client.query(
+        `SELECT data FROM brief_data WHERE brief_id = $1`,
+        [id]
+      );
+      const chain = bd && bd.data && bd.data.approval_chain;
+      if (!chain || !chain.length) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'No approval chain defined for this brief' });
+      }
+
+      // Clear old approval records — clean slate for new round
+      await client.query(`DELETE FROM approvals WHERE brief_id = $1`, [id]);
+
+      // Jump straight to approval_stage_1
+      await client.query(`UPDATE briefs SET status = 'approval_stage_1' WHERE id = $1`, [id]);
+
+      for (let i = 0; i < chain.length; i++) {
+        await client.query(
+          `INSERT INTO approvals (brief_id, approver_id, stage, status) VALUES ($1, $2, $3, 'pending')`,
+          [id, chain[i], i + 1]
+        );
+      }
+
+      // Flag in brief_data so the UI can suppress the understanding block
+      await client.query(
+        `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2::jsonb)
+         ON CONFLICT (brief_id) DO UPDATE
+         SET data = brief_data.data || $2::jsonb, updated_at = NOW()`,
+        [id, JSON.stringify({ resubmitted: true })]
+      );
+
+      await logAction(client, id, req.user.id, 'resubmitted',
+        `Brief resubmitted after revisions — approval chain restarted from stage 1`);
+
+      await client.query('COMMIT');
+      return res.json({ ok: true, message: 'Brief resubmitted — approval chain restarted' });
+    }
+
+    // First submission — go through understanding confirmation as normal
     await client.query(
       `UPDATE briefs SET status = 'understanding_pending' WHERE id = $1`,
       [id]
