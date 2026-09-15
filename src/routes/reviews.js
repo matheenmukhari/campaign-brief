@@ -331,6 +331,32 @@ router.post('/brief/:id/reject', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// GET /api/reviews/pending
+// Full list of briefs where the current user has a review waiting.
+// ─────────────────────────────────────────────
+router.get('/pending', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         cr.id AS review_id, cr.round, cr.signed_off,
+         b.id AS brief_id, b.brief_code, b.name AS brief_name,
+         b.status AS brief_status, b.regions, b.campaign_type, b.go_live_date
+       FROM content_reviews cr
+       JOIN briefs b ON b.id = cr.brief_id
+       WHERE cr.reviewer_id = $1
+         AND cr.signed_off = false
+         AND b.status = CONCAT('review_round_', cr.round)
+       ORDER BY b.go_live_date NULLS LAST, cr.id ASC`,
+      [req.user.id]
+    );
+    res.json({ pending: rows });
+  } catch (err) {
+    console.error('Pending reviews error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─────────────────────────────────────────────
 // GET /api/reviews/pending-count
 // Number of content_reviews where the current user hasn't signed off
 // and the brief is at the matching round.
