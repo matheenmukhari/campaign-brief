@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
       development_name, objective, key_message,
       regions, channels, asset_type, notes,
       go_live_date, asset_deadline, end_date,
-      requires_ceo, requires_arabic, data, approvers, reviewers,
+      requires_ceo, requires_arabic, data, approvers, reviewers, tasks,
     } = req.body;
 
     if (!name || !mode) {
@@ -96,6 +96,17 @@ router.post('/', async (req, res) => {
       `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2)`,
       [brief.id, JSON.stringify(briefDataPayload)]
     );
+
+    if (Array.isArray(tasks) && tasks.length > 0) {
+      for (const task of tasks) {
+        if (!task.title || !task.assignee_id) continue;
+        await client.query(
+          `INSERT INTO tasks (brief_id, assignee_id, title, due_offset_days, is_selected)
+           VALUES ($1, $2, $3, $4, TRUE)`,
+          [brief.id, task.assignee_id, task.title.trim(), task.due_offset_days || null]
+        );
+      }
+    }
 
     await logAction(client, brief.id, req.user.id, 'created', `Brief created by ${req.user.name}`);
 

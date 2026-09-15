@@ -25,9 +25,10 @@ CREATE TABLE users (
   initials      VARCHAR(4)   NOT NULL,
   role          VARCHAR(50)  NOT NULL,           -- content_exec, hom, ceo, creative, crm, social, arabic_qa
   region        VARCHAR(20)  NOT NULL,           -- UK, GCC, Global
-  is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
-  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  is_active      BOOLEAN      NOT NULL DEFAULT TRUE,
+  todoist_token  TEXT,                                -- nullable; never returned in API responses
+  created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_email ON users(email);
@@ -137,12 +138,13 @@ CREATE TABLE tasks (
   id                 SERIAL PRIMARY KEY,
   brief_id           INT NOT NULL REFERENCES briefs(id) ON DELETE CASCADE,
   assignee_id        INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  team               VARCHAR(30) NOT NULL,          -- creative, crm, paid, social, global
+  team               VARCHAR(30),                    -- optional label: creative, crm, paid, social, global
   title              TEXT NOT NULL,
-  due_offset_days    INT,                            -- e.g. 4 means "go-live minus 4"
-  todoist_task_id    VARCHAR(50),                    -- populated after push
+  due_offset_days    INT,                            -- e.g. 4 means "go-live minus 4 days"
+  todoist_task_id    VARCHAR(50),                    -- populated after successful push
   todoist_project_id VARCHAR(50),
   pushed_at          TIMESTAMPTZ,
+  push_error         TEXT,                           -- last error message if push failed
   is_selected        BOOLEAN NOT NULL DEFAULT TRUE,  -- included in push?
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
