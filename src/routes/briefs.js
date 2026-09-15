@@ -417,6 +417,43 @@ router.delete('/:id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// POST /api/briefs/:id/mark-pushed — advance a brief with no tasks to pushed_to_todoist
+// ─────────────────────────────────────────────
+router.post('/:id/mark-pushed', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const { rows: [brief] } = await client.query(
+      `SELECT requester_id, owner_id, status FROM briefs WHERE id = $1`, [id]
+    );
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+    if (brief.requester_id !== req.user.id && brief.owner_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the brief owner or requester can do this' });
+    }
+    if (brief.status !== 'review_complete') {
+      return res.status(409).json({ error: `Brief must be at review_complete (currently ${brief.status})` });
+    }
+    const { rows: [taskCount] } = await client.query(
+      `SELECT COUNT(*)::int AS n FROM tasks WHERE brief_id = $1`, [id]
+    );
+    if (taskCount.n > 0) {
+      return res.status(409).json({ error: 'Brief has tasks — use the push endpoint instead' });
+    }
+    await client.query('BEGIN');
+    await client.query(`UPDATE briefs SET status = 'pushed_to_todoist' WHERE id = $1`, [id]);
+    await logAction(client, id, req.user.id, 'pushed_to_todoist', 'Brief marked as pushed (no tasks)');
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Mark pushed error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// ─────────────────────────────────────────────
 // POST /api/briefs/:id/archive — soft delete (any status past draft)
 // ─────────────────────────────────────────────
 router.post('/:id/archive', async (req, res) => {

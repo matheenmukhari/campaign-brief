@@ -6,6 +6,7 @@ let activeCustomSections = new Set(['audience', 'localisation']);
 let _teamUsers = [];
 let approvalChain = [];  // [{id, name, initials, role}]
 let reviewerChain = [];  // [{id, name, initials, role}]
+let taskList = [];       // [{title, assignee_id, assignee_name, due_offset_days}]
 
 (async function () {
   if (!initShell('new-brief')) return;
@@ -64,10 +65,12 @@ async function loadTeamOptions() {
 
     const chainSel = document.getElementById('chain-select');
     const reviewerSel = document.getElementById('reviewer-select');
+    const taskAssigneeSel = document.getElementById('task-assignee-select');
     users.forEach(u => {
       const opt = `<option value="${escapeAttr(u.id)}">${escapeHtml(u.name)}</option>`;
       chainSel.insertAdjacentHTML('beforeend', opt);
       reviewerSel.insertAdjacentHTML('beforeend', opt);
+      taskAssigneeSel.insertAdjacentHTML('beforeend', opt);
     });
 
     // Show logged-in user as the fixed owner
@@ -194,6 +197,69 @@ function moveReviewer(i, dir) {
   renderReviewerList();
 }
 
+// ── Task list builder ──
+
+function renderTaskList() {
+  const list = document.getElementById('task-list');
+  if (!taskList.length) {
+    list.innerHTML = '<div class="chain-empty">No tasks added — brief will have no Todoist tasks.</div>';
+    return;
+  }
+  list.innerHTML = taskList.map((t, i) => `
+    <div class="appr-card">
+      <div class="appr-info" style="flex:1;min-width:0">
+        <div class="appr-av" style="background:var(--tint-purple,#ede9f8);color:var(--violet,#7c3aed);flex-shrink:0">${escapeHtml(t.assignee_initials)}</div>
+        <div style="min-width:0">
+          <div class="appr-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(t.title)}</div>
+          <div class="appr-role">${escapeHtml(t.assignee_name)}${t.due_offset_days ? ' · ' + t.due_offset_days + ' days before go-live' : ''}</div>
+        </div>
+      </div>
+      <div class="appr-acts" style="flex-shrink:0">
+        ${i > 0 ? `<button type="button" class="btn btn-ghost btn-xs" onclick="moveTask(${i},-1)">↑</button>` : ''}
+        ${i < taskList.length - 1 ? `<button type="button" class="btn btn-ghost btn-xs" onclick="moveTask(${i},1)">↓</button>` : ''}
+        <button type="button" class="btn btn-ghost btn-xs" style="color:var(--rose)" onclick="removeTask(${i})">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addTask() {
+  const title = (document.getElementById('task-title-input').value || '').trim();
+  const assigneeId = document.getElementById('task-assignee-select').value;
+  const offset = document.getElementById('task-offset-input').value;
+
+  if (!title) { toast('Task title is required'); return; }
+  if (!assigneeId) { toast('Select an assignee'); return; }
+
+  const user = _teamUsers.find(u => String(u.id) === assigneeId);
+  if (!user) return;
+
+  taskList.push({
+    title,
+    assignee_id: user.id,
+    assignee_name: user.name,
+    assignee_initials: user.initials,
+    due_offset_days: offset ? parseInt(offset, 10) : null,
+  });
+
+  document.getElementById('task-title-input').value = '';
+  document.getElementById('task-assignee-select').value = '';
+  document.getElementById('task-offset-input').value = '';
+  renderTaskList();
+}
+
+function removeTask(i) {
+  taskList.splice(i, 1);
+  renderTaskList();
+}
+
+function moveTask(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= taskList.length) return;
+  [taskList[i], taskList[j]] = [taskList[j], taskList[i]];
+  renderTaskList();
+}
+
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -306,6 +372,11 @@ async function submitForm(alsoSubmit) {
     data: collectExtraData(),
     approvers: approvalChain.map(u => u.id),
     reviewers: reviewerChain.map(u => u.id),
+    tasks: taskList.map(t => ({
+      title: t.title,
+      assignee_id: t.assignee_id,
+      due_offset_days: t.due_offset_days,
+    })),
   };
 
   try {

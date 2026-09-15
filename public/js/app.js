@@ -36,6 +36,7 @@ function renderSidebar(activePage, pendingCount = null, reviewCount = null) {
     { page: 'team',       label: 'Team',           dot: 'var(--pink)',   href: '/team.html' },
     { page: 'qa',         label: 'QA checklist',   dot: 'var(--violet)', href: '/qa.html' },
     { page: 'log',        label: 'Revision log',   dot: 'var(--gray)',   href: '/log.html' },
+    { page: 'settings',   label: 'Settings',       dot: 'var(--text-3)', href: '/settings.html' },
   ];
 
   const linksHtml = links.map(l => {

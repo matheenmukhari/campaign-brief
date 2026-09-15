@@ -306,6 +306,39 @@
           </div>
         </div>
 
+        <!-- ── Task list builder ── -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title">Task list <span style="font-size:11px;color:var(--text-3);margin-left:6px;font-weight:400">Optional — pushed to Todoist after content review</span></div>
+            <span class="card-chevron open">▼</span>
+          </div>
+          <div class="card-body open">
+            <p class="field-hint" style="margin-bottom:14px">Add each task manually. Assignee and due offset are used at push time — you pick the Todoist project then, not now.</p>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
+              <div style="flex:1;min-width:180px">
+                <label class="lbl">Task title</label>
+                <input type="text" id="task-title-input" placeholder="e.g. Write email copy">
+              </div>
+              <div style="width:160px">
+                <label class="lbl">Assignee</label>
+                <select id="task-assignee-select">
+                  <option value="">Select…</option>
+                </select>
+              </div>
+              <div style="width:120px">
+                <label class="lbl">Days before go-live</label>
+                <input type="number" id="task-offset-input" placeholder="7" min="0">
+              </div>
+              <div style="padding-bottom:1px">
+                <button type="button" class="btn btn-ghost" onclick="addTask()">Add task</button>
+              </div>
+            </div>
+            <div id="task-list" class="chain-list">
+              <div class="chain-empty">No tasks added — brief will have no Todoist tasks.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── Submit bar ── -->
         <div class="submit-bar">
           <div>
