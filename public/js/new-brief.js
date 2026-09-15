@@ -4,7 +4,8 @@
 let currentMode = 'quick';
 let activeCustomSections = new Set(['audience', 'localisation']);
 let _teamUsers = [];
-let approvalChain = []; // [{id, name, initials, role}]
+let approvalChain = [];  // [{id, name, initials, role}]
+let reviewerChain = [];  // [{id, name, initials, role}]
 
 (async function () {
   if (!initShell('new-brief')) return;
@@ -62,9 +63,11 @@ async function loadTeamOptions() {
     _teamUsers = users;
 
     const chainSel = document.getElementById('chain-select');
+    const reviewerSel = document.getElementById('reviewer-select');
     users.forEach(u => {
-      chainSel.insertAdjacentHTML('beforeend',
-        `<option value="${escapeAttr(u.id)}">${escapeHtml(u.name)}</option>`);
+      const opt = `<option value="${escapeAttr(u.id)}">${escapeHtml(u.name)}</option>`;
+      chainSel.insertAdjacentHTML('beforeend', opt);
+      reviewerSel.insertAdjacentHTML('beforeend', opt);
     });
 
     // Show logged-in user as the fixed owner
@@ -136,6 +139,59 @@ function moveApprover(i, dir) {
   if (j < 0 || j >= approvalChain.length) return;
   [approvalChain[i], approvalChain[j]] = [approvalChain[j], approvalChain[i]];
   renderChain();
+}
+
+// ── Reviewer chain builder ──
+
+function renderReviewerList() {
+  const list = document.getElementById('reviewer-list');
+  if (!reviewerChain.length) {
+    list.innerHTML = '<div class="chain-empty">No reviewers added — brief will skip content review.</div>';
+    return;
+  }
+  list.innerHTML = reviewerChain.map((u, i) => `
+    <div class="appr-card">
+      <div class="appr-info">
+        <div class="appr-av" style="background:var(--tint-green);color:var(--tint-green-t)">${escapeHtml(u.initials)}</div>
+        <div>
+          <div class="appr-name">${escapeHtml(u.name)}</div>
+          <div class="appr-role">Reviewer ${i + 1}</div>
+        </div>
+      </div>
+      <div class="appr-acts">
+        ${i > 0 ? `<button type="button" class="btn btn-ghost btn-xs" onclick="moveReviewer(${i}, -1)">↑</button>` : ''}
+        ${i < reviewerChain.length - 1 ? `<button type="button" class="btn btn-ghost btn-xs" onclick="moveReviewer(${i}, 1)">↓</button>` : ''}
+        <button type="button" class="btn btn-ghost btn-xs" style="color:var(--rose)" onclick="removeReviewer(${i})">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addReviewer() {
+  const sel = document.getElementById('reviewer-select');
+  const userId = sel.value;
+  if (!userId) return;
+  const user = _teamUsers.find(u => String(u.id) === userId);
+  if (!user) return;
+  if (reviewerChain.some(u => String(u.id) === userId)) {
+    toast(`${user.name} is already a reviewer`);
+    return;
+  }
+  reviewerChain.push({ id: user.id, name: user.name, initials: user.initials, role: user.role });
+  sel.value = '';
+  renderReviewerList();
+}
+
+function removeReviewer(i) {
+  reviewerChain.splice(i, 1);
+  renderReviewerList();
+}
+
+function moveReviewer(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= reviewerChain.length) return;
+  [reviewerChain[i], reviewerChain[j]] = [reviewerChain[j], reviewerChain[i]];
+  renderReviewerList();
 }
 
 function escapeHtml(s) {
@@ -249,6 +305,7 @@ async function submitForm(alsoSubmit) {
     requires_arabic: requiresArabic,
     data: collectExtraData(),
     approvers: approvalChain.map(u => u.id),
+    reviewers: reviewerChain.map(u => u.id),
   };
 
   try {

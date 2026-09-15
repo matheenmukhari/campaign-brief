@@ -286,6 +286,26 @@
           </div>
         </div>
 
+        <!-- ── Content reviewers picker ── -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-head" onclick="toggleCard(this)">
+            <div class="card-title">Content reviewers <span style="font-size:11px;color:var(--text-3);margin-left:6px;font-weight:400">Optional — review begins after approval</span></div>
+            <span class="card-chevron open">▼</span>
+          </div>
+          <div class="card-body open">
+            <p class="field-hint" style="margin-bottom:14px">Pick who will review the content after the brief is fully approved. Reviewers give section-tagged feedback in Round 1, then sign off in Round 2. Leave empty to skip the review stage.</p>
+            <div class="chain-add">
+              <select id="reviewer-select">
+                <option value="">Select a team member…</option>
+              </select>
+              <button type="button" class="btn btn-ghost" onclick="addReviewer()">Add reviewer</button>
+            </div>
+            <div id="reviewer-list" class="chain-list">
+              <div class="chain-empty">No reviewers added — brief will skip content review.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── Submit bar ── -->
         <div class="submit-bar">
           <div>

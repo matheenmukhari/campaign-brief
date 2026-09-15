@@ -4,6 +4,8 @@
 // ============================================================
 let brief = null;
 let approvals = [];
+let reviews = [];
+let reviewComments = [];
 let currentUser = null;
 let isEditMode = false;
 let _chainUsers = [];
@@ -26,14 +28,17 @@ let _chainEditorChain = [];
 
 async function loadBrief(id) {
   try {
-    const [briefRes, apprRes, usersRes] = await Promise.all([
+    const [briefRes, apprRes, usersRes, reviewRes] = await Promise.all([
       apiCall('GET', `/api/briefs/${id}`),
       apiCall('GET', `/api/approvals/brief/${id}`),
       apiCall('GET', '/api/users').catch(() => ({ users: [] })),
+      apiCall('GET', `/api/reviews/brief/${id}`).catch(() => ({ reviews: [], comments: [] })),
     ]);
     brief = briefRes.brief;
     approvals = apprRes.approvals || [];
     _chainUsers = usersRes.users || [];
+    reviews = reviewRes.reviews || [];
+    reviewComments = reviewRes.comments || [];
     setTopbar('Dashboard', brief.name);
     render();
   } catch (err) {
@@ -79,6 +84,7 @@ function renderViewMode() {
     ${renderRevisionBanner()}
     ${renderUnderstandingBlock(extra)}
     ${renderApprovalChain()}
+    ${renderReviewPanel()}
 
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-body open">
@@ -138,7 +144,17 @@ function renderPipeline() {
   ];
   const approvalStages = [...new Set(approvals.map(a => a.stage))].sort((a, b) => a - b)
     .map(n => ({ key: `approval_stage_${n}`, label: stageNames[n].join(' + ') }));
-  const fixedEnd = [{ key: 'approved', label: 'Approved' }];
+  const hasReviewers = reviews.length > 0 ||
+    ((brief.extra_data || {}).reviewers || []).length > 0;
+
+  const fixedEnd = hasReviewers
+    ? [
+        { key: 'approved', label: 'Approved' },
+        { key: 'review_round_1', label: 'Review R1' },
+        { key: 'review_round_2', label: 'Review R2' },
+        { key: 'review_complete', label: 'Complete' },
+      ]
+    : [{ key: 'approved', label: 'Approved' }];
 
   const displayStages = [...fixedStart, ...approvalStages, ...fixedEnd];
   const stageOrder = displayStages.map(s => s.key);
@@ -148,7 +164,8 @@ function renderPipeline() {
     let cls = '';
     if (currentIdx > i) cls = 'done';
     else if (currentIdx === i) cls = 'active';
-    if (brief.status === 'approved' && s.key === 'approved') cls = 'done';
+    const reviewStatuses = ['review_round_1', 'review_round_2', 'review_complete'];
+    if (reviewStatuses.includes(brief.status) && s.key === 'approved') cls = 'done';
     const dot = cls === 'done' ? '✓' : i + 1;
     return `<div class="pipe-step ${cls}">
       <div class="pipe-dot">${dot}</div>
@@ -200,7 +217,11 @@ function renderUnderstandingBlock(extra) {
   }
 
   // Case D — beyond understanding, show what was confirmed
-  if (['approval_stage_1', 'approval_stage_2', 'approval_stage_3', 'approved'].includes(status) && summary) {
+  const beyondUnderstanding = [
+    'approval_stage_1', 'approval_stage_2', 'approval_stage_3',
+    'approved', 'review_round_1', 'review_round_2', 'review_complete',
+  ];
+  if (beyondUnderstanding.includes(status) && summary) {
     return `
       <div class="confirm-card">
         <div class="confirm-title">Confirmed understanding</div>
@@ -330,6 +351,209 @@ function renderApprovalChain() {
   </div>`;
 
   return `<div style="margin-bottom:20px">${chainHeader}${stageBlocks}</div>`;
+}
+
+// ─────────────────── REVIEW PANEL ───────────────────
+function renderReviewPanel() {
+  const inReview = ['review_round_1', 'review_round_2'].includes(brief.status);
+  const reviewDone = brief.status === 'review_complete';
+
+  if (!inReview && !reviewDone) return '';
+
+  const round = brief.status === 'review_round_2' ? 2 : (reviewDone ? 2 : 1);
+  const currentRoundReviews = reviews.filter(r => r.round === round);
+  const isR2 = brief.status === 'review_round_2';
+  const roundLabel = reviewDone
+    ? 'Review complete'
+    : isR2
+    ? 'Round 2 — Sign-off'
+    : 'Round 1 — Feedback';
+
+  const roundBadgeCls = reviewDone ? 'tag-green' : isR2 ? 'tag-amber' : 'tag-blue';
+
+  const reviewerCards = currentRoundReviews.map(r => {
+    const isMine = r.reviewer_id === currentUser.id;
+    const canSignOff = isMine && !r.signed_off && inReview;
+    const statusTag = r.signed_off
+      ? `<span class="tag tag-green">${isR2 ? 'Signed off' : 'R1 Done'}</span>`
+      : inReview && brief.status === `review_round_${r.round}`
+      ? `<span class="tag tag-amber">Pending</span>`
+      : `<span class="tag tag-gray">Waiting</span>`;
+
+    const actionBtn = canSignOff
+      ? `<button class="btn btn-ok btn-xs" onclick="markReviewDone(${r.id})">${isR2 ? 'Sign off' : 'Mark R1 done'}</button>`
+      : '';
+
+    return `
+      <div class="appr-card">
+        <div style="width:100%">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div class="appr-info">
+              <div class="appr-av" style="background:var(--tint-green);color:var(--tint-green-t)">${escapeHtml(r.reviewer_initials)}</div>
+              <div>
+                <div class="appr-name">${escapeHtml(r.reviewer_name)}</div>
+                <div class="appr-role">${escapeHtml(r.reviewer_role.replace(/_/g, ' '))}</div>
+              </div>
+            </div>
+            <div class="appr-acts">${statusTag}${actionBtn}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Comment thread — R1 only
+  const commentSection = !isR2 && !reviewDone ? renderCommentThread() : '';
+
+  // Reject button — any assigned reviewer during active review
+  const isAssigned = reviews.some(r => r.reviewer_id === currentUser.id);
+  const rejectBtn = inReview && isAssigned
+    ? `<div style="margin-top:16px;padding-top:16px;border-top:0.5px solid var(--border)">
+        <button class="btn btn-danger btn-sm" onclick="openRejectModal()">Reject and return to draft</button>
+       </div>`
+    : '';
+
+  return `
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0.02em;text-transform:uppercase">Content review</span>
+        <span class="tag ${roundBadgeCls}" style="font-size:10px">${roundLabel}</span>
+      </div>
+      ${reviewerCards}
+      ${commentSection}
+      ${rejectBtn}
+    </div>`;
+}
+
+function renderCommentThread() {
+  const sections = ['all', 'general', 'headline', 'cta', 'audience', 'creative', 'arabic'];
+  const activeFilter = window._reviewSectionFilter || 'all';
+  const filtered = activeFilter === 'all'
+    ? reviewComments
+    : reviewComments.filter(c => c.section === activeFilter);
+
+  const isAssigned = reviews.some(r => r.reviewer_id === currentUser.id && r.round === 1);
+
+  const filterBar = `
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      ${sections.map(s => `
+        <button class="btn btn-ghost btn-xs${activeFilter === s ? ' btn-active' : ''}"
+          onclick="setCommentFilter('${s}')" style="${activeFilter === s ? 'background:var(--tint-blue);color:var(--tint-blue-t);border-color:transparent' : ''}">
+          ${s.charAt(0).toUpperCase() + s.slice(1)}
+        </button>`).join('')}
+    </div>`;
+
+  const commentList = filtered.length
+    ? filtered.map(c => `
+        <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="appr-av" style="width:22px;height:22px;font-size:10px;background:var(--tint-green);color:var(--tint-green-t)">${escapeHtml(c.author_initials)}</div>
+            <span style="font-size:12.5px;font-weight:500;color:var(--text)">${escapeHtml(c.author_name)}</span>
+            <span class="tag tag-gray" style="font-size:10px">${escapeHtml(c.section || 'general')}</span>
+            <span style="font-size:11px;color:var(--text-3);margin-left:auto">${formatDate(c.created_at)}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-2);line-height:1.55">${escapeHtml(c.body)}</div>
+        </div>`).join('')
+    : `<div style="font-size:13px;color:var(--text-3);padding:8px 0">No comments yet${activeFilter !== 'all' ? ` in ${activeFilter}` : ''}.</div>`;
+
+  const addForm = isAssigned ? `
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:flex-start">
+      <select id="comment-section-sel" style="width:130px;flex-shrink:0">
+        <option value="general">General</option>
+        <option value="headline">Headline</option>
+        <option value="cta">CTA</option>
+        <option value="audience">Audience</option>
+        <option value="creative">Creative</option>
+        <option value="arabic">Arabic</option>
+      </select>
+      <input type="text" id="comment-input" placeholder="Add feedback…" style="flex:1">
+      <button class="btn btn-ghost btn-sm" onclick="submitReviewComment()">Add</button>
+    </div>` : '';
+
+  return `
+    <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid var(--border)">
+      <div style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0.02em;text-transform:uppercase;margin-bottom:10px">Round 1 feedback</div>
+      ${filterBar}
+      ${commentList}
+      ${addForm}
+    </div>`;
+}
+
+function setCommentFilter(section) {
+  window._reviewSectionFilter = section;
+  render();
+}
+
+// ─────────────────── REVIEW ACTIONS ───────────────────
+async function markReviewDone(reviewId) {
+  try {
+    await apiCall('POST', `/api/reviews/${reviewId}/mark-done`);
+    toast('Signed off');
+    await loadBrief(brief.id);
+  } catch (err) {
+    toast(err.message || 'Could not sign off');
+  }
+}
+
+async function submitReviewComment() {
+  const body = (document.getElementById('comment-input') || {}).value || '';
+  const section = (document.getElementById('comment-section-sel') || {}).value || 'general';
+  if (!body.trim()) { toast('Write a comment first'); return; }
+  try {
+    await apiCall('POST', `/api/reviews/brief/${brief.id}/comment`, { section, body: body.trim() });
+    toast('Comment added');
+    await loadBrief(brief.id);
+  } catch (err) {
+    toast(err.message || 'Could not add comment');
+  }
+}
+
+// ─────────────────── REJECT MODAL ───────────────────
+function openRejectModal() {
+  const modal = document.getElementById('reject-review-modal') || createRejectModal();
+  document.getElementById('reject-reason').value = '';
+  modal.classList.add('open');
+}
+
+function closeRejectModal() {
+  const modal = document.getElementById('reject-review-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function createRejectModal() {
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="overlay" id="reject-review-modal">
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-ttl">Reject and return to draft</div>
+          <button class="modal-x" onclick="closeRejectModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px;color:var(--text-2);margin-bottom:14px;line-height:1.55">This will return the brief to draft. The author will need to revise it and re-submit for approvals before content review can begin again.</p>
+          <div class="fl">
+            <label class="lbl">Reason <span class="req">*</span></label>
+            <textarea id="reject-reason" placeholder="Describe what needs to change before this brief is ready for review…" style="min-height:90px"></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeRejectModal()">Cancel</button>
+          <button class="btn btn-danger btn-sm" onclick="submitReject()">Reject and return</button>
+        </div>
+      </div>
+    </div>`);
+  return document.getElementById('reject-review-modal');
+}
+
+async function submitReject() {
+  const reason = (document.getElementById('reject-reason') || {}).value || '';
+  if (!reason.trim()) { toast('Reason is required'); return; }
+  try {
+    await apiCall('POST', `/api/reviews/brief/${brief.id}/reject`, { reason: reason.trim() });
+    toast('Brief returned to draft');
+    closeRejectModal();
+    await loadBrief(brief.id);
+  } catch (err) {
+    toast(err.message || 'Could not reject');
+  }
 }
 
 function renderApprovalCard(a, stageNum, currentStageNum, isApproved) {

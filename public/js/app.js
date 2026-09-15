@@ -20,7 +20,7 @@ function timeGreeting() {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-function renderSidebar(activePage, pendingCount = null) {
+function renderSidebar(activePage, pendingCount = null, reviewCount = null) {
   const user = getCurrentUser();
   if (!user) return '';
 
@@ -30,7 +30,7 @@ function renderSidebar(activePage, pendingCount = null) {
     { page: 'new-brief',  label: 'New brief',      dot: 'var(--rose)',   href: '/new-brief.html' },
     { group: 'Active' },
     { page: 'approvals',  label: 'Approvals',      dot: 'var(--amber)',  href: '/approvals.html', count: pendingCount },
-    { page: 'review',     label: 'Content review', dot: 'var(--blue)',   href: '/review.html' },
+    { page: 'review',     label: 'Content review', dot: 'var(--blue)',   href: '/review.html',    count: reviewCount },
     { page: 'todoist',    label: 'Todoist push',   dot: 'var(--green)',  href: '/todoist.html' },
     { group: 'Reference' },
     { page: 'team',       label: 'Team',           dot: 'var(--pink)',   href: '/team.html' },
@@ -98,7 +98,8 @@ function initShell(activePage) {
   Promise.all([
     apiCall('GET', '/api/auth/me').catch(() => null),
     apiCall('GET', '/api/approvals/pending').catch(() => ({ pending: [] })),
-  ]).then(([meRes, penRes]) => {
+    apiCall('GET', '/api/reviews/pending-count').catch(() => ({ count: 0 })),
+  ]).then(([meRes, penRes, revRes]) => {
     if (!meRes) {
       clearToken();
       window.location.href = '/login.html';
@@ -106,7 +107,8 @@ function initShell(activePage) {
     }
     setCurrentUser(meRes.user);
     const count = (penRes.pending || []).length;
-    if (sb) sb.innerHTML = renderSidebar(activePage, count);
+    const reviewCount = revRes.count || 0;
+    if (sb) sb.innerHTML = renderSidebar(activePage, count, reviewCount);
   });
 
   return true;
