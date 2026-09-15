@@ -70,7 +70,7 @@ router.get('/todoist/projects', async (req, res) => {
       return res.status(409).json({ error: 'You have not connected your Todoist account' });
     }
 
-    const response = await fetch('https://api.todoist.com/rest/v2/projects', {
+    const response = await fetch('https://api.todoist.com/api/v1/projects', {
       headers: { Authorization: `Bearer ${user.todoist_token}` },
     });
 
@@ -186,7 +186,7 @@ router.post('/brief/:id/push', async (req, res) => {
         // Small delay between requests to stay well within Todoist rate limits
         if (results.length > 0) await new Promise(r => setTimeout(r, 100));
 
-        const response = await fetch('https://api.todoist.com/rest/v2/tasks', {
+        const response = await fetch('https://api.todoist.com/api/v1/tasks', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,

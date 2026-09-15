@@ -102,7 +102,7 @@ router.post('/connect-todoist', authRequired, async (req, res) => {
     // Validate by calling Todoist — if the token is wrong this 401s
     let todoistUser;
     try {
-      const response = await fetch('https://api.todoist.com/rest/v2/projects', {
+      const response = await fetch('https://api.todoist.com/api/v1/projects', {
         headers: { Authorization: `Bearer ${trimmed}` },
       });
       if (!response.ok) {
