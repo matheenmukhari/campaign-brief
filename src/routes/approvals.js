@@ -7,6 +7,7 @@
 const express = require('express');
 const pool = require('../db/connection');
 const authRequired = require('../middleware/authRequired');
+const { startReview } = require('./reviews');
 
 const router = express.Router();
 router.use(authRequired);
@@ -248,12 +249,26 @@ router.post('/:approvalId/approve', async (req, res) => {
         await logAction(client, approval.brief_id, req.user.id, 'stage_advanced',
           `Advanced to Stage ${nextStage}`);
       } else {
-        await client.query(
-          `UPDATE briefs SET status = 'approved' WHERE id = $1`,
-          [approval.brief_id]
+        // Check if reviewers are assigned — if so, jump straight into review_round_1
+        const { rows: [bd] } = await client.query(
+          `SELECT data FROM brief_data WHERE brief_id = $1`, [approval.brief_id]
         );
-        await logAction(client, approval.brief_id, req.user.id, 'fully_approved',
-          `Brief fully approved`);
+        const reviewers = bd && bd.data && bd.data.reviewers;
+
+        if (Array.isArray(reviewers) && reviewers.length > 0) {
+          await client.query(
+            `UPDATE briefs SET status = 'approved' WHERE id = $1`, [approval.brief_id]
+          );
+          await logAction(client, approval.brief_id, req.user.id, 'fully_approved',
+            `Brief fully approved`);
+          await startReview(client, approval.brief_id, reviewers, req.user.id);
+        } else {
+          await client.query(
+            `UPDATE briefs SET status = 'approved' WHERE id = $1`, [approval.brief_id]
+          );
+          await logAction(client, approval.brief_id, req.user.id, 'fully_approved',
+            `Brief fully approved`);
+        }
       }
     }
 

@@ -123,6 +123,7 @@ CREATE TABLE comments (
   brief_id   INT NOT NULL REFERENCES briefs(id) ON DELETE CASCADE,
   author_id  INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   section    VARCHAR(50),                          -- general, headline, cta, audience, creative, arabic
+  round      INT NOT NULL DEFAULT 1,              -- which review round this comment belongs to
   body       TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

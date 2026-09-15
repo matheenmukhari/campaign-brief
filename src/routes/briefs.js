@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
       development_name, objective, key_message,
       regions, channels, asset_type, notes,
       go_live_date, asset_deadline, end_date,
-      requires_ceo, requires_arabic, data, approvers,
+      requires_ceo, requires_arabic, data, approvers, reviewers,
     } = req.body;
 
     if (!name || !mode) {
@@ -87,7 +87,11 @@ router.post('/', async (req, res) => {
     );
     const brief = briefResult.rows[0];
 
-    const briefDataPayload = { ...(data || {}), approval_chain: approvers };
+    const briefDataPayload = {
+      ...(data || {}),
+      approval_chain: approvers,
+      ...(Array.isArray(reviewers) && reviewers.length ? { reviewers } : {}),
+    };
     await client.query(
       `INSERT INTO brief_data (brief_id, data) VALUES ($1, $2)`,
       [brief.id, JSON.stringify(briefDataPayload)]
