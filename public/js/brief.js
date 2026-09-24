@@ -7,7 +7,6 @@ let approvals = [];
 let reviews = [];
 let reviewComments = [];
 let briefTasks = [];
-let _todoistProjects = null; // cached after first fetch
 let currentUser = null;
 let isEditMode = false;
 let _chainUsers = [];
@@ -54,10 +53,6 @@ async function loadBrief(id) {
 function render() {
   if (isEditMode) return renderEditMode();
   renderViewMode();
-  // Populate Todoist project dropdowns if push panel is visible
-  if (['review_complete', 'pushed_to_todoist'].includes(brief.status) && briefTasks.length) {
-    loadProjectDropdowns('[id^="task-proj-"], [id^="retry-proj-"]');
-  }
 }
 
 // ─────────────────── VIEW MODE ───────────────────
@@ -92,8 +87,8 @@ function renderViewMode() {
     ${renderRevisionBanner()}
     ${renderUnderstandingBlock(extra)}
     ${renderApprovalChain()}
+    ${renderTodoistBanner()}
     ${renderReviewPanel()}
-    ${renderPushPanel()}
 
     <div class="card" style="margin-bottom: 14px;">
       <div class="card-body open">
@@ -380,256 +375,20 @@ function renderApprovalChain() {
   return `<div style="margin-bottom:20px">${chainHeader}${stageBlocks}</div>`;
 }
 
-// ─────────────────── PUSH PANEL ───────────────────
-function renderPushPanel() {
-  const showAt = ['review_complete', 'pushed_to_todoist'];
-  if (!showAt.includes(brief.status)) return '';
-
-  const isPushed = brief.status === 'pushed_to_todoist';
-  const isOwnerOrRequester = brief.requester_id === currentUser.id || brief.owner_id === currentUser.id;
-
-  if (!briefTasks.length) {
-    if (!isPushed && isOwnerOrRequester) {
-      return `
-        <div style="margin-bottom:20px">
-          <div style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0.02em;text-transform:uppercase;margin-bottom:12px">Push to Todoist</div>
-          <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:18px 20px">
-            <div style="font-size:13px;color:var(--text-2);margin-bottom:14px">No tasks were defined for this brief. Nothing to push.</div>
-            <button class="btn btn-primary btn-sm" onclick="markPushedWithNoTasks()">Mark as pushed and complete</button>
-          </div>
-        </div>`;
-    }
-    return '';
-  }
-
-  // Separate tasks into categories for display
-  const failedTasks = briefTasks.filter(t => t.push_error && !t.pushed_at);
-  const pushedTasks = briefTasks.filter(t => t.pushed_at);
-  const unpushedTasks = briefTasks.filter(t => !t.pushed_at && !t.push_error);
-
-  // Retry panel — shown when pushed_to_todoist but some tasks still have errors
-  if (isPushed && failedTasks.length > 0) {
-    return renderRetryPanel(pushedTasks, failedTasks);
-  }
-
-  // Success summary — all pushed, no errors
-  if (isPushed && failedTasks.length === 0) {
-    return renderPushSuccessPanel(pushedTasks);
-  }
-
-  // Push panel — review_complete, shown to owner/requester
-  if (!isOwnerOrRequester) return '';
-
-  return renderActivePushPanel();
-}
-
-function renderActivePushPanel() {
-  const projectSelects = briefTasks.map(t => {
-    const noToken = !t.assignee_connected;
-    const dueTxt = t.due_date
-      ? `due ${formatDate(t.due_date)}`
-      : t.due_offset_days
-      ? `${t.due_offset_days} days before go-live`
-      : 'no due date';
-
-    return `
-      <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:8px" id="task-push-row-${t.id}">
-        <div style="display:flex;align-items:flex-start;gap:10px">
-          <input type="checkbox" id="task-sel-${t.id}" checked style="margin-top:3px;flex-shrink:0">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">${escapeHtml(t.title)}</div>
-            <div style="font-size:12px;color:var(--text-3);margin-bottom:8px">
-              ${escapeHtml(t.assignee_name)} · ${dueTxt}
-            </div>
-            ${noToken ? `
-              <div style="font-size:12px;color:var(--amber);margin-bottom:8px">
-                ⚠ ${escapeHtml(t.assignee_name)} hasn't connected Todoist.
-                <label style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;cursor:pointer">
-                  <input type="checkbox" id="task-briefer-${t.id}">
-                  <span>Push under my token instead</span>
-                </label>
-              </div>` : ''}
-            <div>
-              <select id="task-proj-${t.id}" style="width:100%;max-width:320px">
-                <option value="">Loading projects…</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-
+// ─────────────────── TODOIST BANNER ───────────────────
+function renderTodoistBanner() {
+  if (!['review_complete', 'pushed_to_todoist'].includes(brief.status)) return '';
+  const isReady = brief.status === 'review_complete';
+  const bg      = isReady ? 'var(--tint-amber)'     : 'var(--tint-green)';
+  const border  = isReady ? '#E6C97B'               : '#b0d9b0';
+  const color   = isReady ? 'var(--tint-amber-t)'   : 'var(--tint-green-t)';
+  const label   = isReady ? 'This brief is ready to push to Todoist.' : 'Tasks have been pushed to Todoist.';
+  const linkTxt = isReady ? 'Go to Todoist push →' : 'View in Todoist push →';
   return `
-    <div style="margin-bottom:20px" id="push-panel">
-      <div style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0.02em;text-transform:uppercase;margin-bottom:12px">Push to Todoist</div>
-      <div id="push-error-banner" style="display:none;background:var(--tint-red);border:0.5px solid #E8B8B0;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;font-size:13px;color:var(--tint-red-t)"></div>
-      ${projectSelects}
-      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="executePush()">Push selected tasks</button>
+    <div style="background:${bg};border:0.5px solid ${border};border-radius:var(--r);padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <span style="font-size:13px;color:${color}">${label}</span>
+      <a href="/todoist.html?brief=${brief.id}" style="font-size:12.5px;font-weight:500;color:${color};white-space:nowrap;text-decoration:none">${linkTxt}</a>
     </div>`;
-}
-
-function renderRetryPanel(pushedTasks, failedTasks) {
-  const successHtml = pushedTasks.length
-    ? `<div style="font-size:13px;color:var(--tint-green-t);margin-bottom:10px">${pushedTasks.length} task${pushedTasks.length > 1 ? 's' : ''} pushed successfully.</div>`
-    : '';
-
-  const failedHtml = failedTasks.map(t => `
-    <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px">
-      <div style="display:flex;align-items:flex-start;gap:10px">
-        <input type="checkbox" id="retry-sel-${t.id}" checked style="margin-top:3px;flex-shrink:0">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">${escapeHtml(t.title)}</div>
-          <div style="font-size:12px;color:var(--rose);margin-bottom:8px">Error: ${escapeHtml(t.push_error)}</div>
-          ${!t.assignee_connected ? `
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--amber);cursor:pointer;margin-bottom:8px">
-              <input type="checkbox" id="retry-briefer-${t.id}">
-              Push under my token instead
-            </label><br>` : ''}
-          <select id="retry-proj-${t.id}" style="width:100%;max-width:320px">
-            <option value="">Loading projects…</option>
-          </select>
-        </div>
-      </div>
-    </div>`).join('');
-
-  return `
-    <div style="margin-bottom:20px" id="push-panel">
-      <div style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0.02em;text-transform:uppercase;margin-bottom:12px">Push to Todoist</div>
-      <div id="push-error-banner" style="display:none;background:var(--tint-red);border:0.5px solid #E8B8B0;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;font-size:13px;color:var(--tint-red-t)"></div>
-      ${successHtml}
-      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">${failedTasks.length} task${failedTasks.length > 1 ? 's' : ''} failed — retry below:</div>
-      ${failedHtml}
-      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="executeRetry()">Retry failed tasks</button>
-    </div>`;
-}
-
-function renderPushSuccessPanel(pushedTasks) {
-  const taskLinks = pushedTasks
-    .filter(t => t.todoist_task_id)
-    .map(t => `<div style="font-size:13px;color:var(--text-2);padding:4px 0">${escapeHtml(t.title)} — <a href="https://todoist.com/app/task/${escapeAttr(t.todoist_task_id)}" target="_blank" rel="noopener" style="color:var(--blue)">View in Todoist</a></div>`)
-    .join('');
-
-  return `
-    <div style="margin-bottom:20px">
-      <div style="font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0.02em;text-transform:uppercase;margin-bottom:12px">Todoist</div>
-      <div style="background:var(--tint-green);border:0.5px solid #b0d9b0;border-radius:var(--r);padding:16px 18px">
-        <div style="font-size:13px;font-weight:500;color:var(--tint-green-t);margin-bottom:10px">${pushedTasks.length} task${pushedTasks.length > 1 ? 's' : ''} pushed to Todoist.</div>
-        ${taskLinks}
-      </div>
-    </div>`;
-}
-
-// Load Todoist projects into all project dropdowns in the push panel
-async function loadProjectDropdowns(selector = '[id^="task-proj-"]') {
-  if (!_todoistProjects) {
-    try {
-      const { projects } = await apiCall('GET', '/api/tasks/todoist/projects');
-      _todoistProjects = projects;
-    } catch (err) {
-      // User not connected or token expired — leave dropdowns empty
-      document.querySelectorAll(selector).forEach(sel => {
-        sel.innerHTML = '<option value="">— Connect Todoist in Settings —</option>';
-      });
-      return;
-    }
-  }
-  document.querySelectorAll(selector).forEach(sel => {
-    const current = sel.value;
-    sel.innerHTML = '<option value="">Select project…</option>' +
-      _todoistProjects.map(p => `<option value="${escapeAttr(p.id)}"${p.id === current ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
-  });
-}
-
-async function executePush() {
-  const btn = document.querySelector('#push-panel .btn-primary');
-  if (btn) { btn.disabled = true; btn.textContent = 'Pushing…'; }
-
-  const selections = briefTasks
-    .filter(t => {
-      const cb = document.getElementById(`task-sel-${t.id}`);
-      return cb && cb.checked;
-    })
-    .map(t => ({
-      task_id: t.id,
-      todoist_project_id: (document.getElementById(`task-proj-${t.id}`) || {}).value || null,
-      use_briefer_token: !!(document.getElementById(`task-briefer-${t.id}`) || {}).checked,
-    }));
-
-  if (!selections.length) {
-    toast('Select at least one task to push');
-    if (btn) { btn.disabled = false; btn.textContent = 'Push selected tasks'; }
-    return;
-  }
-
-  try {
-    await apiCall('POST', `/api/tasks/brief/${brief.id}/push`, { selections });
-    toast('Tasks pushed to Todoist');
-    await loadBrief(brief.id);
-  } catch (err) {
-    const banner = document.getElementById('push-error-banner');
-    if (banner) {
-      banner.textContent = err.message || 'Push failed — check errors below and retry';
-      banner.style.display = 'block';
-    } else {
-      toast(err.message || 'Push failed');
-    }
-    if (btn) { btn.disabled = false; btn.textContent = 'Push selected tasks'; }
-    // Reload to show updated per-task errors from the server
-    await loadBrief(brief.id);
-  }
-}
-
-async function executeRetry() {
-  const btn = document.querySelector('#push-panel .btn-primary');
-  if (btn) { btn.disabled = true; btn.textContent = 'Retrying…'; }
-
-  const failedTasks = briefTasks.filter(t => t.push_error && !t.pushed_at);
-  const selections = failedTasks
-    .filter(t => {
-      const cb = document.getElementById(`retry-sel-${t.id}`);
-      return cb && cb.checked;
-    })
-    .map(t => ({
-      task_id: t.id,
-      todoist_project_id: (document.getElementById(`retry-proj-${t.id}`) || {}).value || null,
-      use_briefer_token: !!(document.getElementById(`retry-briefer-${t.id}`) || {}).checked,
-    }));
-
-  if (!selections.length) {
-    toast('Select at least one task to retry');
-    if (btn) { btn.disabled = false; btn.textContent = 'Retry failed tasks'; }
-    return;
-  }
-
-  try {
-    await apiCall('POST', `/api/tasks/brief/${brief.id}/push`, { selections });
-    toast('Retry complete');
-    await loadBrief(brief.id);
-  } catch (err) {
-    const banner = document.getElementById('push-error-banner');
-    if (banner) {
-      banner.textContent = err.message || 'Retry failed — check errors below';
-      banner.style.display = 'block';
-    } else {
-      toast(err.message || 'Retry failed');
-    }
-    if (btn) { btn.disabled = false; btn.textContent = 'Retry failed tasks'; }
-    await loadBrief(brief.id);
-  }
-}
-
-async function markPushedWithNoTasks() {
-  try {
-    await apiCall('POST', `/api/tasks/brief/${brief.id}/push`, { selections: [] });
-  } catch (_) { /* ignore — we handle this edge case differently below */ }
-  // Since there are no tasks, directly hit a dedicated endpoint
-  try {
-    await apiCall('POST', `/api/briefs/${brief.id}/mark-pushed`);
-    toast('Marked as pushed');
-    await loadBrief(brief.id);
-  } catch (err) {
-    toast(err.message || 'Could not advance brief');
-  }
 }
 
 // ─────────────────── REVIEW PANEL ───────────────────
