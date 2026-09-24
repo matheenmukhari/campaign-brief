@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revision log · SelectProperty</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="shell">
+    <div id="sidebar"></div>
+    <div id="workspace">
+      <div id="topbar">
+        <div class="tb-trail" id="tb-trail"></div>
+        <div class="tb-right" id="tb-actions"></div>
+      </div>
+      <div id="body">
+        <h1 class="section-title">Revision log</h1>
+        <p class="section-sub" id="log-sub">Every action across every brief.</p>
+        <div class="filter-bar">
+          <input  type="text"   id="log-brief-search" placeholder="Filter by brief…">
+          <select id="log-actor"><option value="">All people</option></select>
+          <select id="log-action"><option value="">All actions</option></select>
+          <input  type="date"   id="log-from" title="From date">
+          <input  type="date"   id="log-to"   title="To date">
+          <button type="button" class="btn btn-ghost btn-sm" id="log-apply">Apply</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="log-reset">Reset</button>
+        </div>
+        <div id="log-timeline" class="log-timeline">
+          <div class="empty-state">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/log.js"></script>
+</body>
+</html>

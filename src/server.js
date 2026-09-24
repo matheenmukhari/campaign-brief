@@ -20,7 +20,8 @@ app.use('/api/briefs', require('./routes/briefs'));
 app.use('/api/approvals', require('./routes/approvals'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/tasks', require('./routes/tasks'));
-app.use('/api/users', require('./routes/users'));
+app.use('/api/users',     require('./routes/users'));
+app.use('/api/audit-log', require('./routes/audit'));
 
 // Health check endpoint — proves the server is alive
 app.get('/api/health', (req, res) => {
