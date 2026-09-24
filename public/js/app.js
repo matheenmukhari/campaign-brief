@@ -26,7 +26,7 @@ function renderSidebar(activePage, pendingCount = null, reviewCount = null, push
 
   const links = [
     { group: 'Workspace' },
-    { page: 'dashboard',  label: 'Dashboard',      dot: 'var(--text)',   href: '/dashboard.html' },
+    { page: 'dashboard',  label: 'Dashboard',      dot: '#D9E0D4',       href: '/dashboard.html' },
     { page: 'new-brief',  label: 'New brief',      dot: 'var(--rose)',   href: '/new-brief.html' },
     { group: 'Active' },
     { page: 'approvals',  label: 'Approvals',      dot: 'var(--amber)',  href: '/approvals.html', count: pendingCount },
@@ -36,7 +36,7 @@ function renderSidebar(activePage, pendingCount = null, reviewCount = null, push
     { page: 'team',       label: 'Team',           dot: 'var(--pink)',   href: '/team.html' },
     { page: 'qa',         label: 'QA checklist',   dot: 'var(--violet)', href: '/qa.html',         count: qaCount },
     { page: 'log',        label: 'Revision log',   dot: 'var(--gray)',   href: '/log.html' },
-    { page: 'settings',   label: 'Settings',       dot: 'var(--text-3)', href: '/settings.html' },
+    { page: 'settings',   label: 'Settings',       dot: '#ABABAB',        href: '/settings.html' },
   ];
 
   const linksHtml = links.map(l => {
