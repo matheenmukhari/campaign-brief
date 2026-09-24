@@ -152,13 +152,22 @@ function renderCockpit(brief) {
   if (!briefTasks.length) {
     const noTaskBody = isReady
       ? `<div style="font-size:13px;color:var(--text-2);margin-bottom:16px">No tasks are defined for this brief.</div>
-         <button class="btn btn-primary btn-sm" onclick="markPushedNoTasks(${brief.id})">Advance to pushed (no tasks)</button>`
+         <button type="button" class="btn btn-primary btn-sm" id="no-task-btn">Advance to pushed (no tasks)</button>`
       : `<div style="font-size:13px;color:var(--text-3)">No tasks were defined for this brief.</div>`;
 
     document.getElementById('push-cockpit').innerHTML = `
       ${headerHtml}
       <div id="pc-banner" style="display:none" class="pc-banner pc-banner-error"></div>
       ${noTaskBody}`;
+
+    const noTaskBtn = document.getElementById('no-task-btn');
+    if (noTaskBtn) {
+      noTaskBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        console.log('No-task advance button clicked', { briefId: brief.id });
+        markPushedNoTasks(brief.id);
+      });
+    }
     return;
   }
 
@@ -184,8 +193,25 @@ function renderCockpit(brief) {
       </tbody>
     </table>
     <div class="pc-footer">
-      <button class="btn btn-primary" id="push-btn" onclick="executePush(${brief.id})">${btnText}</button>
+      <button type="button" class="btn btn-primary" id="push-btn">${btnText}</button>
     </div>`;
+
+  document.getElementById('push-btn').addEventListener('click', function (e) {
+    e.preventDefault();
+    const unpushedTasks = briefTasks.filter(t => !t.pushed_at);
+    const selections = unpushedTasks
+      .filter(t => {
+        const cb = document.getElementById(`sel-${t.id}`);
+        return cb && cb.checked;
+      })
+      .map(t => ({
+        task_id:            t.id,
+        todoist_project_id: (document.getElementById(`proj-${t.id}`) || {}).value || null,
+        use_briefer_token:  !!(document.getElementById(`fb-${t.id}`) || {}).checked,
+      }));
+    console.log('Push button clicked', { briefId: brief.id, selections });
+    executePush(brief.id, selections);
+  });
 }
 
 function taskRow(t) {
@@ -275,22 +301,10 @@ function populateProjectDropdowns() {
 
 // ── PUSH ───────────────────────────────────────────────────
 
-async function executePush(briefId) {
+async function executePush(briefId, selections) {
   const btn    = document.getElementById('push-btn');
   const banner = document.getElementById('pc-banner');
   if (banner) banner.style.display = 'none';
-
-  const unpushedTasks = briefTasks.filter(t => !t.pushed_at);
-  const selections = unpushedTasks
-    .filter(t => {
-      const cb = document.getElementById(`sel-${t.id}`);
-      return cb && cb.checked;
-    })
-    .map(t => ({
-      task_id:            t.id,
-      todoist_project_id: (document.getElementById(`proj-${t.id}`) || {}).value || null,
-      use_briefer_token:  !!(document.getElementById(`fb-${t.id}`) || {}).checked,
-    }));
 
   if (!selections.length) {
     toast('Select at least one task to push');
