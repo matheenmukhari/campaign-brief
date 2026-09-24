@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team · SelectProperty</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="shell">
+    <div id="sidebar"></div>
+    <div id="workspace">
+      <div id="topbar">
+        <div class="tb-trail" id="tb-trail"></div>
+        <div class="tb-right" id="tb-actions"></div>
+      </div>
+      <div id="body">
+        <h1 class="section-title">Team</h1>
+        <p class="section-sub" id="team-sub">Loading…</p>
+        <div class="filter-bar">
+          <input type="text" id="team-search" placeholder="Search name or email…">
+          <select id="team-region">
+            <option value="">All regions</option>
+          </select>
+        </div>
+        <div id="team-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/team.js"></script>
+</body>
+</html>
