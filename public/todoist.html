@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todoist push · SelectProperty</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    /* Override body padding so the split pane fills the workspace */
+    #body { padding: 0; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="shell">
+    <div id="sidebar"></div>
+    <div id="workspace">
+      <div id="topbar">
+        <div class="tb-trail" id="tb-trail"></div>
+        <div class="tb-right" id="tb-actions"></div>
+      </div>
+      <div id="body">
+        <div class="push-shell">
+          <div class="push-inbox" id="push-inbox">
+            <div class="push-inbox-hd">
+              <div class="push-inbox-title">Todoist push</div>
+              <div class="push-inbox-sub">Loading…</div>
+            </div>
+          </div>
+          <div class="push-cockpit" id="push-cockpit">
+            <div class="pc-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/todoist.js"></script>
+</body>
+</html>
