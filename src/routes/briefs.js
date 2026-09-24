@@ -123,6 +123,21 @@ router.post('/', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// GET /api/briefs/push-ready-count — count briefs at review_complete for the sidebar badge
+// ─────────────────────────────────────────────
+router.get('/push-ready-count', async (req, res) => {
+  try {
+    const { rows: [result] } = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM briefs WHERE status = 'review_complete'`
+    );
+    res.json({ count: result.count });
+  } catch (err) {
+    console.error('Push ready count error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─────────────────────────────────────────────
 // GET /api/briefs — list briefs
 // Query params:
 //   ?mine=true              — only briefs I own or requested

@@ -13,8 +13,8 @@ let todoistProjects = null; // cached after first successful fetch
 
   try {
     const [readyRes, pushedRes] = await Promise.all([
-      apiCall('GET', '/api/briefs?status=review_complete&mine=true'),
-      apiCall('GET', '/api/briefs?status=pushed_to_todoist&mine=true'),
+      apiCall('GET', '/api/briefs?status=review_complete'),
+      apiCall('GET', '/api/briefs?status=pushed_to_todoist'),
     ]);
     allBriefs = [
       ...(readyRes.briefs  || []),
