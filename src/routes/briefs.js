@@ -138,6 +138,21 @@ router.get('/push-ready-count', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// GET /api/briefs/qa-incomplete-count — count pushed_to_todoist briefs (awaiting QA)
+// ─────────────────────────────────────────────
+router.get('/qa-incomplete-count', async (req, res) => {
+  try {
+    const { rows: [result] } = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM briefs WHERE status = 'pushed_to_todoist'`
+    );
+    res.json({ count: result.count });
+  } catch (err) {
+    console.error('QA incomplete count error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─────────────────────────────────────────────
 // GET /api/briefs — list briefs
 // Query params:
 //   ?mine=true              — only briefs I own or requested
@@ -510,6 +525,80 @@ router.post('/:id/archive', async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Archive brief error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/briefs/:id/qa-item — toggle a QA checklist item
+// Body: { item_id: string, checked: boolean }
+// ─────────────────────────────────────────────
+router.post('/:id/qa-item', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const { item_id, checked } = req.body;
+    if (!item_id || typeof checked !== 'boolean') {
+      return res.status(400).json({ error: 'item_id (string) and checked (boolean) are required' });
+    }
+
+    const { rows: [brief] } = await client.query(
+      `SELECT id, qa_checklist FROM briefs WHERE id = $1`, [id]
+    );
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+
+    await client.query('BEGIN');
+    const { rows: [updated] } = await client.query(
+      `UPDATE briefs
+       SET qa_checklist = qa_checklist || jsonb_build_object($2, $3::boolean),
+           updated_at   = NOW()
+       WHERE id = $1
+       RETURNING qa_checklist`,
+      [id, item_id, checked]
+    );
+    const action = checked ? 'qa_item_checked' : 'qa_item_unchecked';
+    await client.query(
+      `INSERT INTO audit_log (brief_id, actor_id, action, detail) VALUES ($1,$2,$3,$4)`,
+      [id, req.user.id, action, item_id]
+    );
+    await client.query('COMMIT');
+    res.json({ qa_checklist: updated.qa_checklist });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('QA item error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/briefs/:id/mark-qa-complete — advance brief from pushed_to_todoist → qa_complete
+// ─────────────────────────────────────────────
+router.post('/:id/mark-qa-complete', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const { rows: [brief] } = await client.query(
+      `SELECT status FROM briefs WHERE id = $1`, [id]
+    );
+    if (!brief) return res.status(404).json({ error: 'Brief not found' });
+    if (brief.status !== 'pushed_to_todoist') {
+      return res.status(409).json({ error: `Brief must be at pushed_to_todoist (currently ${brief.status})` });
+    }
+    await client.query('BEGIN');
+    await client.query(`UPDATE briefs SET status = 'qa_complete', updated_at = NOW() WHERE id = $1`, [id]);
+    await client.query(
+      `INSERT INTO audit_log (brief_id, actor_id, action, detail) VALUES ($1,$2,$3,$4)`,
+      [id, req.user.id, 'qa_complete', 'All QA items signed off']
+    );
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Mark QA complete error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
     client.release();

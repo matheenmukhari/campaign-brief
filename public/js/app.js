@@ -20,7 +20,7 @@ function timeGreeting() {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-function renderSidebar(activePage, pendingCount = null, reviewCount = null) {
+function renderSidebar(activePage, pendingCount = null, reviewCount = null, pushCount = null, qaCount = null) {
   const user = getCurrentUser();
   if (!user) return '';
 
@@ -31,10 +31,10 @@ function renderSidebar(activePage, pendingCount = null, reviewCount = null) {
     { group: 'Active' },
     { page: 'approvals',  label: 'Approvals',      dot: 'var(--amber)',  href: '/approvals.html', count: pendingCount },
     { page: 'review',     label: 'Content review', dot: 'var(--blue)',   href: '/review.html',    count: reviewCount },
-    { page: 'todoist',    label: 'Todoist push',   dot: 'var(--green)',  href: '/todoist.html' },
+    { page: 'todoist',    label: 'Todoist push',   dot: 'var(--green)',  href: '/todoist.html',   count: pushCount },
     { group: 'Reference' },
     { page: 'team',       label: 'Team',           dot: 'var(--pink)',   href: '/team.html' },
-    { page: 'qa',         label: 'QA checklist',   dot: 'var(--violet)', href: '/qa.html' },
+    { page: 'qa',         label: 'QA checklist',   dot: 'var(--violet)', href: '/qa.html',         count: qaCount },
     { page: 'log',        label: 'Revision log',   dot: 'var(--gray)',   href: '/log.html' },
     { page: 'settings',   label: 'Settings',       dot: 'var(--text-3)', href: '/settings.html' },
   ];
@@ -100,16 +100,20 @@ function initShell(activePage) {
     apiCall('GET', '/api/auth/me').catch(() => null),
     apiCall('GET', '/api/approvals/pending').catch(() => ({ pending: [] })),
     apiCall('GET', '/api/reviews/pending-count').catch(() => ({ count: 0 })),
-  ]).then(([meRes, penRes, revRes]) => {
+    apiCall('GET', '/api/briefs/push-ready-count').catch(() => ({ count: 0 })),
+    apiCall('GET', '/api/briefs/qa-incomplete-count').catch(() => ({ count: 0 })),
+  ]).then(([meRes, penRes, revRes, pushRes, qaRes]) => {
     if (!meRes) {
       clearToken();
       window.location.href = '/login.html';
       return;
     }
     setCurrentUser(meRes.user);
-    const count = (penRes.pending || []).length;
-    const reviewCount = revRes.count || 0;
-    if (sb) sb.innerHTML = renderSidebar(activePage, count, reviewCount);
+    const count       = (penRes.pending || []).length;
+    const reviewCount = revRes.count  || 0;
+    const pushCount   = pushRes.count || 0;
+    const qaCount     = qaRes.count   || 0;
+    if (sb) sb.innerHTML = renderSidebar(activePage, count, reviewCount, pushCount, qaCount);
   });
 
   return true;

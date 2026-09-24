@@ -1031,6 +1031,7 @@ function tagForStatus(s) {
     'review_round_2':{cls:'tag-blue',label:'Review R2'},
     'approved':{cls:'tag-green',label:'Approved'},
     'pushed_to_todoist':{cls:'tag-green',label:'Pushed'},
+    'qa_complete':      {cls:'tag-teal', label:'QA complete'},
     'archived':{cls:'tag-gray',label:'Archived'},
   };
   return map[s] || { cls: 'tag-gray', label: s || 'Unknown' };
