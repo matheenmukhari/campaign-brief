@@ -50,8 +50,7 @@ function renderSidebar(activePage, pendingCount = null, reviewCount = null, push
 
   return `
     <div class="sb-brand">
-      <div class="sb-logo">SelectProperty</div>
-      <div class="sb-sub">Campaign briefing</div>
+      <img src="/images/sp-logo.svg" alt="SelectProperty" class="sb-logo-img">
     </div>
     ${linksHtml}
     <div class="sb-me">
